@@ -4,6 +4,7 @@ import { WelcomeStep } from './setup/WelcomeStep';
 import { PATStep } from './setup/PATStep';
 import { FilterStep } from './setup/FilterStep';
 import { CompletionStep } from './setup/CompletionStep';
+import { GitHubService } from '../services/githubService';
 import './SetupWizard.css';
 
 export type WizardStep = 'welcome' | 'pat' | 'filter' | 'completion';
@@ -18,6 +19,16 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [patValidation, setPatValidation] = useState<{ 
+    isValid: boolean; 
+    isChecking: boolean;
+    hasNotificationsAccess?: boolean;
+  }>({
+    isValid: false,
+    isChecking: false
+  });
+
+  const githubService = new GitHubService();
 
   const steps: { key: WizardStep; title: string }[] = [
     { key: 'welcome', title: 'Welcome' },
@@ -31,6 +42,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   const handleNext = async () => {
     console.log('Next button clicked, current step:', currentStep);
     console.log('Current PAT length:', pat.length);
+    console.log('PAT validation:', patValidation);
     console.log('Can proceed:', canProceed());
     
     switch (currentStep) {
@@ -40,8 +52,15 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       case 'pat':
         // Save PAT before proceeding
         console.log('Saving PAT...');
+        console.log('window.electronAPI available:', !!window.electronAPI);
+        console.log('window.electronAPI.savePAT available:', !!(window.electronAPI && window.electronAPI.savePAT));
+        
         setIsSaving(true);
         try {
+          if (!window.electronAPI || !window.electronAPI.savePAT) {
+            throw new Error('Electron API not available');
+          }
+          
           const success = await window.electronAPI.savePAT(pat);
           console.log('PAT save result:', success);
           if (success) {
@@ -85,9 +104,19 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       case 'welcome':
         return true;
       case 'pat':
-        const patValid = pat.trim().length >= 40;
-        const canGo = patValid && !isSaving;
-        console.log('PAT validation check:', { pat: pat.trim().length, patValid, isSaving, canGo });
+        // Check if PAT is valid and has notifications access
+        const canGo = patValidation.isValid && 
+                     patValidation.hasNotificationsAccess && 
+                     !patValidation.isChecking && 
+                     !isSaving;
+        console.log('PAT validation check:', { 
+          pat: pat.trim().length, 
+          patValid: patValidation.isValid, 
+          hasNotificationsAccess: patValidation.hasNotificationsAccess,
+          isChecking: patValidation.isChecking,
+          isSaving, 
+          canGo 
+        });
         return canGo;
       case 'filter':
         return true;
@@ -95,6 +124,28 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         return true;
       default:
         return false;
+    }
+  };
+
+  const handlePatChange = (newPat: string) => {
+    setPat(newPat);
+    
+    // Update validation state based on PAT length
+    if (newPat.length < 40) {
+      setPatValidation({ isValid: false, isChecking: false });
+    } else {
+      setPatValidation({ isValid: false, isChecking: true });
+      
+      // Validate the token
+      githubService.validateToken(newPat).then(result => {
+        setPatValidation({ 
+          isValid: result.valid, 
+          isChecking: false,
+          hasNotificationsAccess: result.hasNotificationsAccess
+        });
+      }).catch(() => {
+        setPatValidation({ isValid: false, isChecking: false });
+      });
     }
   };
 
@@ -106,7 +157,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         return (
           <PATStep
             pat={pat}
-            onPatChange={setPat}
+            onPatChange={handlePatChange}
           />
         );
       case 'filter':

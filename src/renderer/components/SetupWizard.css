@@ -592,3 +592,244 @@
     padding: 16px 0;
   }
 }
+
+/* Loading and Error States */
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-state .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e1e5e9;
+  border-top: 3px solid #007aff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-state p {
+  color: #6a737d;
+  margin: 0;
+}
+
+.error-state .error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-state h3 {
+  color: #d73a49;
+  margin: 0 0 12px 0;
+  font-size: 18px;
+}
+
+.error-state p {
+  color: #6a737d;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  color: #6a737d;
+  background-color: #f6f8fa;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Update item-avatar to handle both emoji and images */
+.item-avatar img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+/* PAT Validation Styles */
+.pat-validation {
+  margin-top: 8px;
+  min-height: 20px;
+}
+
+.validation-message {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.validation-message .checking {
+  color: #007aff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.validation-message .valid-token {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.validation-message .valid {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.validation-message .invalid {
+  color: #d73a49;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  border: 1px solid #e1e5e9;
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #24292f;
+}
+
+.user-login {
+  color: #6a737d;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}
+
+.invalid-token {
+  color: #d73a49;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.scope-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  color: #374151;
+  font-weight: 500;
+}
+
+.scope-tag.no-scopes {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.scope-requirements {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.scope-requirements p {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #475569;
+}
+
+.scope-requirements ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.scope-requirements li {
+  margin-bottom: 4px;
+}
+
+.scope-requirements code {
+  background-color: #f1f5f9;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 10px;
+  color: #334155;
+}
+
+/* Permission and Scope Styles */
+.permissions-info,
+.permissions-warning {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.permissions-info {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+
+.permissions-warning {
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+.permission-ok {
+  color: #059669;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.permission-warning {
+  color: #d97706;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.permission-details {
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  color: #92400e;
+  line-height: 1.3;
+}
+
+.scopes-info {
+  margin-top: 8px;
+}
+
+.scopes-label {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.scopes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

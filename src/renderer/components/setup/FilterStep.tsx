@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { GitHubService } from '../../services/githubService';
 
 interface FilterStepProps {
   selectedOrgs: string[];
@@ -7,23 +9,63 @@ interface FilterStepProps {
   onReposChange: (repos: string[]) => void;
 }
 
-// Mock data for organizations and repositories
-const mockOrgs = [
-  { id: 'org1', name: 'Acme Corp', avatar: '🏢' },
-  { id: 'org2', name: 'TechStart', avatar: '🚀' },
-  { id: 'org3', name: 'OpenSource', avatar: '📦' },
-  { id: 'org4', name: 'DevTeam', avatar: '👥' },
-];
-
-const mockRepos = [
-  { id: 'repo1', name: 'frontend-app', org: 'Acme Corp', avatar: '⚛️' },
-  { id: 'repo2', name: 'backend-api', org: 'Acme Corp', avatar: '🔧' },
-  { id: 'repo3', name: 'mobile-app', org: 'TechStart', avatar: '📱' },
-  { id: 'repo4', name: 'docs', org: 'OpenSource', avatar: '📚' },
-  { id: 'repo5', name: 'cli-tool', org: 'DevTeam', avatar: '🛠️' },
-];
-
 export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposChange }: FilterStepProps) {
+  const [orgs, setOrgs] = useState<any[]>([]);
+  const [repos, setRepos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadGitHubData();
+  }, []);
+
+  const loadGitHubData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Check if electronAPI is available
+      if (!window.electronAPI || !window.electronAPI.getPAT) {
+        setError('Electron API not available. Please restart the app and try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Get the stored PAT from the main process
+      let pat: string | null = null;
+      try {
+        pat = await window.electronAPI.getPAT();
+      } catch (error) {
+        console.error('Failed to get PAT from main process:', error);
+        setError('Failed to retrieve stored token. Please go back and re-enter your token.');
+        setLoading(false);
+        return;
+      }
+
+      if (!pat) {
+        setError('No GitHub token found. Please go back and enter a valid token.');
+        setLoading(false);
+        return;
+      }
+
+      const githubService = new GitHubService(pat);
+
+      // Load organizations and repositories in parallel
+      const [orgsData, reposData] = await Promise.all([
+        githubService.getUserOrganizations(),
+        githubService.getUserRepositories()
+      ]);
+
+      setOrgs(orgsData);
+      setRepos(reposData);
+    } catch (error) {
+      console.error('Failed to load GitHub data:', error);
+      setError('Failed to load GitHub data. Please check your token and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOrgToggle = (orgId: string) => {
     const newSelection = selectedOrgs.includes(orgId)
       ? selectedOrgs.filter(id => id !== orgId)
@@ -39,7 +81,7 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
   };
 
   const handleSelectAllOrgs = () => {
-    onOrgsChange(mockOrgs.map(org => org.id));
+    onOrgsChange(orgs.map(org => org.id.toString()));
   };
 
   const handleClearAllOrgs = () => {
@@ -47,12 +89,41 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
   };
 
   const handleSelectAllRepos = () => {
-    onReposChange(mockRepos.map(repo => repo.id));
+    onReposChange(repos.map(repo => repo.id.toString()));
   };
 
   const handleClearAllRepos = () => {
     onReposChange([]);
   };
+
+  if (loading) {
+    return (
+      <div className="filter-step">
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading your GitHub organizations and repositories...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="filter-step">
+        <div className="error-state">
+          <div className="error-icon">⚠️</div>
+          <h3>Error Loading Data</h3>
+          <p>{error}</p>
+          <button 
+            className="btn btn-primary" 
+            onClick={loadGitHubData}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="filter-step">
@@ -73,7 +144,7 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
         {/* Organizations Section */}
         <div className="filter-section">
           <div className="section-header">
-            <h3>Organizations</h3>
+            <h3>Organizations ({orgs.length})</h3>
             <div className="section-actions">
               <button
                 type="button"
@@ -92,29 +163,37 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
             </div>
           </div>
           
-          <div className="filter-grid">
-            {mockOrgs.map((org) => (
-              <motion.div
-                key={org.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`filter-item ${selectedOrgs.includes(org.id) ? 'selected' : ''}`}
-                onClick={() => handleOrgToggle(org.id)}
-              >
-                <div className="item-avatar">{org.avatar}</div>
-                <div className="item-name">{org.name}</div>
-                <div className="item-checkbox">
-                  {selectedOrgs.includes(org.id) ? '✓' : ''}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          {orgs.length === 0 ? (
+            <div className="empty-state">
+              <p>No organizations found. You can still receive notifications from your personal repositories.</p>
+            </div>
+          ) : (
+            <div className="filter-grid">
+              {orgs.map((org) => (
+                <motion.div
+                  key={org.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`filter-item ${selectedOrgs.includes(org.id.toString()) ? 'selected' : ''}`}
+                  onClick={() => handleOrgToggle(org.id.toString())}
+                >
+                  <div className="item-avatar">
+                    <img src={org.avatar_url} alt={org.login} />
+                  </div>
+                  <div className="item-name">{org.name || org.login}</div>
+                  <div className="item-checkbox">
+                    {selectedOrgs.includes(org.id.toString()) ? '✓' : ''}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Repositories Section */}
         <div className="filter-section">
           <div className="section-header">
-            <h3>Repositories</h3>
+            <h3>Repositories ({repos.length})</h3>
             <div className="section-actions">
               <button
                 type="button"
@@ -133,26 +212,34 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
             </div>
           </div>
           
-          <div className="filter-grid">
-            {mockRepos.map((repo) => (
-              <motion.div
-                key={repo.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`filter-item ${selectedRepos.includes(repo.id) ? 'selected' : ''}`}
-                onClick={() => handleRepoToggle(repo.id)}
-              >
-                <div className="item-avatar">{repo.avatar}</div>
-                <div className="item-details">
-                  <div className="item-name">{repo.name}</div>
-                  <div className="item-org">{repo.org}</div>
-                </div>
-                <div className="item-checkbox">
-                  {selectedRepos.includes(repo.id) ? '✓' : ''}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          {repos.length === 0 ? (
+            <div className="empty-state">
+              <p>No repositories found.</p>
+            </div>
+          ) : (
+            <div className="filter-grid">
+              {repos.map((repo) => (
+                <motion.div
+                  key={repo.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`filter-item ${selectedRepos.includes(repo.id.toString()) ? 'selected' : ''}`}
+                  onClick={() => handleRepoToggle(repo.id.toString())}
+                >
+                  <div className="item-avatar">
+                    <img src={repo.owner?.avatar_url || '📦'} alt={repo.name} />
+                  </div>
+                  <div className="item-details">
+                    <div className="item-name">{repo.name}</div>
+                    <div className="item-org">{repo.full_name.split('/')[0]}</div>
+                  </div>
+                  <div className="item-checkbox">
+                    {selectedRepos.includes(repo.id.toString()) ? '✓' : ''}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="filter-note">

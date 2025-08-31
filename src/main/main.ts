@@ -25,7 +25,7 @@ function createTray() {
   tray.setToolTip('OctoBar - GitHub Notifications');
   
   // Set badge count (this will show on macOS)
-  tray.setTitle('0'); // This shows the badge count on macOS
+  tray.setTitle('4'); // This shows the badge count on macOS
   
   // Left click shows the popup
   tray.on('click', () => {
