@@ -106,6 +106,33 @@ function App() {
   };
 
   const transformGitHubNotifications = (rawNotifications: any[]): NotificationGroup[] => {
+    // Helper function to build the HTML URL for a notification
+    const buildNotificationUrl = (notification: any): string => {
+      const repoName = notification.repository.full_name;
+      const subjectType = notification.subject.type;
+      const subjectUrl = notification.subject.url;
+      
+      // Extract the number from the API URL (e.g., /repos/owner/repo/issues/123)
+      const urlParts = subjectUrl.split('/');
+      const number = urlParts[urlParts.length - 1];
+      
+      // Build the HTML URL based on the subject type
+      switch (subjectType) {
+        case 'Issue':
+          return `https://github.com/${repoName}/issues/${number}`;
+        case 'PullRequest':
+          return `https://github.com/${repoName}/pull/${number}`;
+        case 'Commit':
+          return `https://github.com/${repoName}/commit/${number}`;
+        case 'Release':
+          return `https://github.com/${repoName}/releases/tag/${number}`;
+        case 'Discussion':
+          return `https://github.com/${repoName}/discussions/${number}`;
+        default:
+          return `https://github.com/${repoName}`;
+      }
+    };
+
     // Group notifications by repository
     const grouped: { [key: string]: any[] } = {};
     
@@ -121,7 +148,7 @@ function App() {
         repository: notification.repository.full_name,
         updatedAt: notification.updated_at,
         unread: !notification.read_at,
-        url: notification.subject.url,
+        url: buildNotificationUrl(notification), // Build proper HTML URL
         reason: notification.reason
       });
     });
@@ -143,8 +170,28 @@ function App() {
     if (!githubService) return;
     
     try {
+      // Mark as read on GitHub
       await githubService.markNotificationAsRead(notificationId);
-      await loadNotifications(); // Reload to update state
+      
+      // Update local state immediately
+      setNotifications(prevNotifications => {
+        const updated = prevNotifications.map(group => ({
+          ...group,
+          notifications: group.notifications.map(notification => 
+            notification.id === notificationId 
+              ? { ...notification, unread: false }
+              : notification
+          )
+        }));
+        
+        // Remove repository groups that have no unread notifications
+        return updated.filter(group => 
+          group.notifications.some(notification => notification.unread)
+        );
+      });
+      
+      // Update unread count
+      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
@@ -154,8 +201,12 @@ function App() {
     if (!githubService) return;
     
     try {
+      // Mark all as read on GitHub
       await githubService.markAllNotificationsAsRead();
-      await loadNotifications(); // Reload to update state
+      
+      // Update local state immediately - clear all notifications since they're all read
+      setNotifications([]);
+      setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
