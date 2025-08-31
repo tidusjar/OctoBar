@@ -1,7 +1,7 @@
-import { GitHubNotification } from '../types/notifications';
+import { AppNotification } from '../types/notifications';
 
 interface QuickActionsProps {
-  notification: GitHubNotification;
+  notification: AppNotification;
   onMarkAsRead: () => void;
   onOpenInBrowser: () => void;
 }

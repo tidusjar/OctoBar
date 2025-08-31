@@ -1,8 +1,8 @@
-import { GitHubNotification } from '../types/notifications';
+import { AppNotification } from '../types/notifications';
 import { QuickActions } from './QuickActions';
 
 interface NotificationItemProps {
-  notification: GitHubNotification;
+  notification: AppNotification;
   onMarkAsRead: (notificationId: string) => void;
 }
 
@@ -58,7 +58,7 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
   };
 
   const handleOpenInBrowser = () => {
-    window.open(notification.html_url, '_blank');
+    window.open(notification.url, '_blank');
   };
 
   return (
@@ -69,14 +69,14 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
             <span className="reason-icon" title={notification.reason}>
               {getReasonIcon(notification.reason)}
             </span>
-            <span className="subject-icon" title={notification.subject.type}>
-              {getSubjectIcon(notification.subject.type)}
+            <span className="subject-icon" title={notification.type}>
+              {getSubjectIcon(notification.type)}
             </span>
           </div>
           
           <div className="notification-meta">
             <span className="notification-time">
-              {formatRelativeTime(notification.updated_at)}
+              {formatRelativeTime(notification.updatedAt)}
             </span>
             {!notification.unread && (
               <span className="read-indicator">✓</span>
@@ -86,17 +86,17 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         
         <div className="notification-title">
           <a 
-            href={notification.html_url}
+            href={notification.url}
             target="_blank"
             rel="noopener noreferrer"
             className="title-link"
           >
-            {notification.subject.title}
+            {notification.title}
           </a>
         </div>
         
         <div className="notification-repository">
-          {notification.repository.full_name}
+          {notification.repository}
         </div>
       </div>
       

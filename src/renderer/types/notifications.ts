@@ -33,14 +33,22 @@ export interface GitHubNotification {
   html_url: string;
 }
 
-export interface NotificationGroup {
-  organization: string;
-  repositories: RepositoryNotifications[];
+// App-specific notification interface for display
+export interface AppNotification {
+  id: string;
+  title: string;
+  type: 'Issue' | 'PullRequest' | 'Commit' | 'Release' | 'Discussion';
+  repository: string;
+  updatedAt: string;
+  unread: boolean;
+  url: string;
+  reason: string;
 }
 
-export interface RepositoryNotifications {
-  repository: GitHubRepository;
-  notifications: GitHubNotification[];
+// Simplified notification group for display
+export interface NotificationGroup {
+  repository: string;
+  notifications: AppNotification[];
 }
 
 export type FilterType = 'work' | 'personal' | 'all';
@@ -57,7 +65,7 @@ export interface QuickAction {
   id: string;
   label: string;
   icon: string;
-  action: (notification: GitHubNotification) => void;
+  action: (notification: AppNotification) => void;
   disabled?: boolean;
 }
 
