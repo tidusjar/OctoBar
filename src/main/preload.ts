@@ -1,46 +1,54 @@
-import { contextBridge, ipcRenderer } from 'electron';
+console.log('=== PRELOAD SCRIPT STARTING ===');
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
-contextBridge.exposeInMainWorld('electronAPI', {
-  // Notification actions
-  markAsRead: (notificationId: string) => ipcRenderer.invoke('mark-as-read', notificationId),
-  openInBrowser: (url: string) => ipcRenderer.invoke('open-in-browser', url),
-  muteThread: (threadId: string) => ipcRenderer.invoke('mute-thread', threadId),
-  starThread: (threadId: string) => ipcRenderer.invoke('star-thread', threadId),
+try {
+  const { contextBridge, ipcRenderer } = require('electron');
+  console.log('Electron modules loaded successfully');
+  console.log('contextBridge:', typeof contextBridge);
+  console.log('ipcRenderer:', typeof ipcRenderer);
   
-  // App actions
-  refreshNotifications: () => ipcRenderer.invoke('refresh-notifications'),
-  openSettings: () => ipcRenderer.invoke('open-settings'),
-  quitApp: () => ipcRenderer.invoke('quit-app'),
-  
-  // Focus mode integration
-  getFocusMode: () => ipcRenderer.invoke('get-focus-mode'),
-  
-  // Listeners
-  onNotificationUpdate: (callback: (count: number) => void) => {
-    ipcRenderer.on('notification-update', (_, count) => callback(count));
-  },
-  
-  onFocusModeChange: (callback: (mode: string) => void) => {
-    ipcRenderer.on('focus-mode-change', (_, mode) => callback(mode));
+  // Test if contextBridge is available
+  if (!contextBridge) {
+    throw new Error('contextBridge is not available');
   }
-});
-
-// Type definitions for the exposed API
-declare global {
-  interface Window {
-    electronAPI: {
-      markAsRead: (notificationId: string) => Promise<void>;
-      openInBrowser: (url: string) => Promise<void>;
-      muteThread: (threadId: string) => Promise<void>;
-      starThread: (threadId: string) => Promise<void>;
-      refreshNotifications: () => Promise<void>;
-      openSettings: () => Promise<void>;
-      quitApp: () => Promise<void>;
-      getFocusMode: () => Promise<string>;
-      onNotificationUpdate: (callback: (count: number) => void) => void;
-      onFocusModeChange: (callback: (mode: string) => void) => void;
-    };
-  }
+  
+  console.log('About to expose electronAPI...');
+  
+  // Expose protected methods that allow the renderer process to use
+  // the ipcRenderer without exposing the entire object
+  contextBridge.exposeInMainWorld('electronAPI', {
+    // Simple test method
+    test: () => {
+      console.log('Test method called from renderer');
+      return 'Hello from preload!';
+    },
+    
+    // PAT management
+    savePAT: (pat: string) => {
+      console.log('savePAT called with:', pat ? `${pat.substring(0, 10)}...` : 'undefined');
+      return ipcRenderer.invoke('save-pat', pat);
+    },
+    getPAT: () => {
+      console.log('getPAT called');
+      return ipcRenderer.invoke('get-pat');
+    },
+    deletePAT: () => {
+      console.log('deletePAT called');
+      return ipcRenderer.invoke('delete-pat');
+    },
+    hasPAT: () => {
+      console.log('hasPAT called');
+      return ipcRenderer.invoke('has-pat');
+    },
+  });
+  
+  console.log('electronAPI exposed successfully');
+  console.log('window.electronAPI should now be available in renderer');
+  
+} catch (error: any) {
+  console.error('=== ERROR IN PRELOAD SCRIPT ===');
+  console.error('Error details:', error);
+  console.error('Error stack:', error.stack);
 }
+
+console.log('=== PRELOAD SCRIPT COMPLETED ===');
+

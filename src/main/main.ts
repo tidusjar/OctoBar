@@ -1,5 +1,6 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain } from 'electron';
 import * as path from 'path';
+import { SecureStorage } from './secureStorage';
 
 // Add isQuiting property to app object
 (app as any).isQuiting = false;
@@ -41,10 +42,32 @@ function createTray() {
 function createPopupWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   
+  const preloadPath = path.resolve(__dirname, 'preload.js');
+  console.log('=== MAIN PROCESS DEBUG ===');
+  console.log('Preload script path:', preloadPath);
+  console.log('__dirname:', __dirname);
+  console.log('Current working directory:', process.cwd());
+  
+  // Check if preload file exists
+  const fs = require('fs');
+  if (!fs.existsSync(preloadPath)) {
+    console.error('❌ Preload script not found at:', preloadPath);
+    console.error('Available files in __dirname:');
+    try {
+      const files = fs.readdirSync(__dirname);
+      console.error('Files:', files);
+    } catch (err) {
+      console.error('Error reading directory:', err);
+    }
+    return;
+  } else {
+    console.log('✅ Preload script found at:', preloadPath);
+  }
+  
   popupWindow = new BrowserWindow({
-    width: 400,
-    height: 600,
-    x: width - 420,
+    width: 450,
+    height: 650,
+    x: width - 470,
     y: 50,
     frame: false,
     resizable: false,
@@ -54,14 +77,24 @@ function createPopupWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: preloadPath
     }
+  });
+  
+  // Add error handling for preload script
+  popupWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('❌ Failed to load:', errorCode, errorDescription, validatedURL);
+  });
+  
+  popupWindow.webContents.on('preload-error', (event, preloadPath, error) => {
+    console.error('❌ Preload script error:', preloadPath, error);
   });
   
   // Load the React app
   // In development, load from Vite dev server
   // In production, load from built files
   if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+    console.log('🔄 Loading from Vite dev server: http://localhost:3001');
     popupWindow.loadURL('http://localhost:3001');
   } else {
     popupWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
@@ -103,6 +136,23 @@ function openSettings() {
   // TODO: Implement settings window
   console.log('Opening settings...');
 }
+
+// IPC handlers for PAT management
+ipcMain.handle('save-pat', async (_, pat: string) => {
+  return await SecureStorage.savePAT(pat);
+});
+
+ipcMain.handle('get-pat', async () => {
+  return await SecureStorage.getPAT();
+});
+
+ipcMain.handle('delete-pat', async () => {
+  return await SecureStorage.deletePAT();
+});
+
+ipcMain.handle('has-pat', async () => {
+  return await SecureStorage.hasPAT();
+});
 
 // App lifecycle events
 app.whenReady().then(() => {
