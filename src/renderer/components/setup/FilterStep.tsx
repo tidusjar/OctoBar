@@ -14,6 +14,8 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
   const [repos, setRepos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [orgSearchTerm, setOrgSearchTerm] = useState('');
+  const [repoSearchTerm, setRepoSearchTerm] = useState('');
 
   useEffect(() => {
     loadGitHubData();
@@ -96,6 +98,17 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
     onReposChange([]);
   };
 
+  // Filter organizations and repositories based on search terms
+  const filteredOrgs = orgs.filter(org => 
+    org.name?.toLowerCase().includes(orgSearchTerm.toLowerCase()) ||
+    org.login?.toLowerCase().includes(orgSearchTerm.toLowerCase())
+  );
+
+  const filteredRepos = repos.filter(repo => 
+    repo.name?.toLowerCase().includes(repoSearchTerm.toLowerCase()) ||
+    repo.full_name?.toLowerCase().includes(repoSearchTerm.toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="filter-step">
@@ -134,10 +147,10 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
         className="filter-content"
       >
         <div className="step-header">
-          <h2>Notification Filters</h2>
+          <h2>Notification Filters (Optional)</h2>
           <p>
             Choose which organizations and repositories you want to receive notifications from.
-            You can always change these later in settings.
+            <strong> Leave everything unselected to receive notifications from all sources.</strong>
           </p>
         </div>
 
@@ -163,13 +176,24 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
             </div>
           </div>
           
+          {/* Organization Search */}
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search organizations..."
+              value={orgSearchTerm}
+              onChange={(e) => setOrgSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          
           {orgs.length === 0 ? (
             <div className="empty-state">
               <p>No organizations found. You can still receive notifications from your personal repositories.</p>
             </div>
           ) : (
             <div className="filter-grid">
-              {orgs.map((org) => (
+              {filteredOrgs.map((org) => (
                 <motion.div
                   key={org.id}
                   whileHover={{ scale: 1.02 }}
@@ -212,13 +236,24 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
             </div>
           </div>
           
+          {/* Repository Search */}
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search repositories..."
+              value={repoSearchTerm}
+              onChange={(e) => setRepoSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          
           {repos.length === 0 ? (
             <div className="empty-state">
               <p>No repositories found.</p>
             </div>
           ) : (
             <div className="filter-grid">
-              {repos.map((repo) => (
+              {filteredRepos.map((repo) => (
                 <motion.div
                   key={repo.id}
                   whileHover={{ scale: 1.02 }}
@@ -243,9 +278,16 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
         </div>
 
         <div className="filter-note">
-          <p>
-            <strong>Note:</strong> You can always modify these filters later in the app settings.
-          </p>
+          <div className="note-icon">💡</div>
+          <div className="note-content">
+            <strong>How filtering works:</strong>
+            <ul>
+              <li><strong>Nothing selected:</strong> Receive notifications from all sources</li>
+              <li><strong>Orgs selected:</strong> Only notifications from those organizations</li>
+              <li><strong>Repos selected:</strong> Only notifications from those repositories</li>
+              <li><strong>Both selected:</strong> Combined filtering (orgs + repos)</li>
+            </ul>
+          </div>
         </div>
       </motion.div>
     </div>

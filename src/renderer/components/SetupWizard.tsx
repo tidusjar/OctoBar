@@ -119,6 +119,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         });
         return canGo;
       case 'filter':
+        // Filter step is optional - users can proceed with no selections
         return true;
       case 'completion':
         return true;
