@@ -57,8 +57,19 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
     onMarkAsRead(notification.id);
   };
 
-  const handleOpenInBrowser = () => {
-    window.open(notification.url, '_blank');
+  const handleOpenInBrowser = async () => {
+    try {
+      // Open in default browser
+      await window.electronAPI.openInBrowser(notification.url);
+      
+      // Mark as read locally and sync with GitHub
+      // This gives the user immediate feedback that they've "handled" this notification
+      onMarkAsRead(notification.id);
+    } catch (error) {
+      console.error('Failed to open notification in browser:', error);
+      // Fallback to regular window.open if electron API fails
+      window.open(notification.url, '_blank');
+    }
   };
 
   return (
@@ -85,14 +96,13 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         </div>
         
         <div className="notification-title">
-          <a 
-            href={notification.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="title-link"
+          <button 
+            onClick={handleOpenInBrowser}
+            className="title-button"
+            title="Open in browser (marks as read)"
           >
             {notification.title}
-          </a>
+          </button>
         </div>
         
         <div className="notification-repository">

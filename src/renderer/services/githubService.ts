@@ -230,16 +230,25 @@ export class GitHubService {
       }
     });
 
-    const response = await fetch(`${this.baseUrl}/notifications?${searchParams.toString()}`, {
+    const url = `${this.baseUrl}/notifications?${searchParams.toString()}`;
+    console.log('🌐 Fetching notifications from:', url);
+    console.log('🔑 Headers:', this.getHeaders());
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: this.getHeaders()
     });
+
+    console.log('📡 Response status:', response.status, response.statusText);
+    console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       throw new Error(`Failed to get notifications: ${response.status} ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log('📨 Response data length:', data.length);
+    return data;
   }
 
   /**

@@ -154,6 +154,12 @@ ipcMain.handle('has-pat', async () => {
   return await SecureStorage.hasPAT();
 });
 
+// IPC handler for opening URLs in default browser
+ipcMain.handle('open-in-browser', async (_, url: string) => {
+  const { shell } = require('electron');
+  await shell.openExternal(url);
+});
+
 // App lifecycle events
 app.whenReady().then(() => {
   createTray();

@@ -75,16 +75,23 @@ function App() {
       return;
     }
 
+    console.log('🔄 Loading notifications from GitHub API...');
     setLoading(true);
     setError(null);
     
     try {
-      // Get real notifications from GitHub
-      const rawNotifications = await githubService.getNotifications({
+      // Get real notifications from GitHub with cache busting
+      const params = {
         all: false, // Only unread notifications
         participating: false,
-        per_page: 100
-      });
+        per_page: 100,
+        // Add a timestamp to ensure fresh data
+        since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // Get notifications from last 7 days
+      };
+      
+      console.log('📡 API parameters:', params);
+      const rawNotifications = await githubService.getNotifications(params);
+      console.log(`📨 Received ${rawNotifications.length} notifications from GitHub`);
 
       // Transform GitHub notifications to our format
       const groupedNotifications = transformGitHubNotifications(rawNotifications);
@@ -93,6 +100,7 @@ function App() {
       // Calculate unread count
       const count = rawNotifications.length;
       setUnreadCount(count);
+      console.log(`✅ Loaded ${count} unread notifications, grouped into ${groupedNotifications.length} repositories`);
     } catch (error) {
       console.error('Failed to load notifications:', error);
       if (error instanceof Error) {

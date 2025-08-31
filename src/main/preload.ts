@@ -39,6 +39,12 @@ try {
       console.log('hasPAT called');
       return ipcRenderer.invoke('has-pat');
     },
+    
+    // Open URL in default browser
+    openInBrowser: (url: string) => {
+      console.log('openInBrowser called with:', url);
+      return ipcRenderer.invoke('open-in-browser', url);
+    },
   });
   
   console.log('electronAPI exposed successfully');
