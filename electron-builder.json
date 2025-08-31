@@ -1,0 +1,21 @@
+{
+  "appId": "com.octobar.app",
+  "productName": "OctoBar",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "node_modules/**/*"
+  ],
+  "mac": {
+    "category": "public.app-category.productivity",
+    "target": "dmg",
+    "icon": "src/renderer/assets/icon.png"
+  },
+  "dmg": {
+    "title": "OctoBar",
+    "icon": "src/renderer/assets/icon.png",
+    "background": "src/renderer/assets/dmg-background.png"
+  }
+}
