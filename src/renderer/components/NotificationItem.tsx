@@ -9,30 +9,30 @@ interface NotificationItemProps {
 export function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
   const getReasonIcon = (reason: string) => {
     switch (reason) {
-      case 'assign': return '👤';
-      case 'author': return '✍️';
-      case 'comment': return '💬';
-      case 'invitation': return '📨';
-      case 'manual': return '🔔';
-      case 'mention': return '📢';
-      case 'push': return '⬆️';
-      case 'review_requested': return '👀';
-      case 'security_alert': return '⚠️';
-      case 'state_change': return '🔄';
-      case 'subscribed': return '⭐';
-      case 'team_mention': return '👥';
-      default: return '📌';
+      case 'assign': return 'ASSIGN';
+      case 'author': return 'AUTHOR';
+      case 'comment': return 'COMMENT';
+      case 'invitation': return 'INVITE';
+      case 'manual': return 'BELL';
+      case 'mention': return 'MENTION';
+      case 'push': return 'PUSH';
+      case 'review_requested': return 'REVIEW';
+      case 'security_alert': return 'SECURITY';
+      case 'state_change': return 'CHANGE';
+      case 'subscribed': return 'WATCH';
+      case 'team_mention': return 'TEAM';
+      default: return 'NOTIFY';
     }
   };
 
   const getSubjectIcon = (type: string) => {
     switch (type) {
-      case 'Issue': return '🐛';
-      case 'PullRequest': return '🔀';
-      case 'Commit': return '💾';
-      case 'Release': return '🏷️';
-      case 'Discussion': return '💭';
-      default: return '📝';
+      case 'Issue': return 'ISSUE';
+      case 'PullRequest': return 'PR';
+      case 'Commit': return 'COMMIT';
+      case 'Release': return 'RELEASE';
+      case 'Discussion': return 'DISCUSS';
+      default: return 'ITEM';
     }
   };
 
@@ -73,11 +73,11 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
   };
 
   return (
-    <div className={`notification-item ${notification.unread ? 'unread' : ''}`}>
+    <div className={`notification-card ${notification.unread ? 'unread' : ''}`}>
       <div className="notification-content">
         <div className="notification-header">
-          <div className="notification-icons">
-            <span className="reason-icon" title={notification.reason}>
+          <div className="notification-type">
+            <span className="type-icon" title={`${notification.reason} - ${notification.type}`}>
               {getReasonIcon(notification.reason)}
             </span>
             <span className="subject-icon" title={notification.type}>
@@ -86,38 +86,35 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
           </div>
           
           <div className="notification-meta">
-            <span className="notification-time">
+            <span className="time-badge">
               {formatRelativeTime(notification.updatedAt)}
             </span>
-            {!notification.unread && (
-              <span className="read-indicator">✓</span>
+            {notification.unread && (
+              <div className="unread-indicator"></div>
             )}
           </div>
         </div>
         
-        <div className="notification-title">
-          <button 
-            onClick={handleOpenInBrowser}
-            className="title-button"
-            title="Open in browser (marks as read)"
-          >
-            {notification.title}
-          </button>
-        </div>
-        
-        <div className="notification-repository">
-          {notification.repository}
-          <span className="reason-badge" title={notification.reason}>
-            {notification.reason.replace('_', ' ')}
-          </span>
+        <div className="notification-body">
+          <h4 className="notification-title">
+            <button 
+              onClick={handleOpenInBrowser}
+              className="title-link"
+              title="Open in browser (marks as read)"
+            >
+              {notification.title}
+            </button>
+          </h4>
         </div>
       </div>
       
-      <QuickActions
-        notification={notification}
-        onMarkAsRead={handleMarkAsRead}
-        onOpenInBrowser={handleOpenInBrowser}
-      />
+      <div className="notification-actions">
+        <QuickActions
+          notification={notification}
+          onMarkAsRead={handleMarkAsRead}
+          onOpenInBrowser={handleOpenInBrowser}
+        />
+      </div>
     </div>
   );
 }
