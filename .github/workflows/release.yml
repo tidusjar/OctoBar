@@ -15,9 +15,6 @@ jobs:
           - os: macos-latest
             platform: mac
             dist-command: dist:mac
-          - os: windows-latest
-            platform: win
-            dist-command: dist:win
     
     steps:
       - name: Checkout
