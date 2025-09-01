@@ -198,7 +198,8 @@ Semantic-release analyzes commit messages to determine version increments:
 
 ### 📋 Configuration Files
 - `.github/workflows/release.yml` - Main workflow using semantic-release
-- `package.json` - Semantic-release configuration in the "release" section
+- `.releaserc.js` - Semantic-release configuration (JavaScript format)
+- `.npmrc` - NPM authentication configuration
 
 ### 💡 How to Use Conventional Commits
 
@@ -234,16 +235,15 @@ git commit -m "chore: update dependencies"
 
 ### 🚀 Creating Your First Stable Release
 
-When you're ready for a stable v1.0.0 release, simply update the `package.json` "release" section:
+When you're ready for a stable v1.0.0 release, simply update the `.releaserc.js` file:
 
-```json
-{
-  "release": {
-    "branches": [
-      "main"  // Remove the prerelease configuration
-    ]
-  }
-}
+```javascript
+module.exports = {
+  branches: [
+    'main'  // Remove the prerelease configuration
+  ],
+  // ... rest of config
+};
 ```
 
 This will switch from pre-releases to stable releases.
