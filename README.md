@@ -461,4 +461,37 @@ The app uses:
 
 ## License
 
-MIT License - see LICENSE file for details
+This project uses a **dual licensing model** - see the [LICENSE](LICENSE) file for details.
+
+### Non-Commercial Use (Free)
+
+- ✅ **Personal use** - Use for personal projects
+- ✅ **Educational use** - Use in educational settings
+- ✅ **Open source projects** - Use in open source projects
+- ✅ **Modification** - Modify and adapt the code
+- ✅ **Distribution** - Share and distribute for non-commercial purposes
+
+### Commercial Use (Paid License Required)
+
+- 💰 **Commercial products** - Use in commercial software
+- 💰 **Business use** - Use by commercial entities
+- 💰 **Profit-generating activities** - Use for profit
+- 💰 **Commercial development** - Use in commercial software development
+
+### What this means:
+
+- 🆓 **Free for non-commercial use** - Students, hobbyists, open source projects
+- 💰 **Paid license for commercial use** - Businesses must purchase a commercial license
+- ❌ **Liability** - No warranty or liability provided
+- ❌ **Warranty** - Software provided "as is"
+
+### Commercial Licensing
+
+For commercial use, please contact us for licensing terms and pricing:
+- **Email**: [your-email@example.com]
+- **GitHub**: [your-github-username]
+
+This dual licensing model allows us to:
+- Support the open source community with free access
+- Generate revenue from commercial users
+- Continue developing and maintaining the project
