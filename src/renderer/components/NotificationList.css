@@ -1,0 +1,69 @@
+/* NotificationList Component Styles */
+
+.notification-list {
+  padding: 0;
+}
+
+.organization-group {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.organization-header {
+  padding: var(--spacing-base) var(--spacing-xl) var(--spacing-md);
+  background: rgba(248, 248, 248, 0.8);
+}
+
+.organization-name {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.repository-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.repository-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-xl) var(--spacing-xs);
+  background: var(--color-background-tertiary);
+}
+
+.repository-name {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.repository-link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.repository-link:hover {
+  text-decoration: underline;
+}
+
+.notification-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px var(--spacing-md);
+  border-radius: 10px;
+}
+
+.repository-notifications {
+  padding: 0 var(--spacing-xl);
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .repository-notifications {
+    padding: 0 var(--spacing-lg);
+  }
+}

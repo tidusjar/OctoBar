@@ -202,7 +202,9 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
                   onClick={() => handleOrgToggle(org.id.toString())}
                 >
                   <div className="item-avatar">
-                    <img src={org.avatar_url} alt={org.login} />
+                    {org.avatar_url ? (
+                      <img src={org.avatar_url} alt={org.login} />
+                    ) : null}
                   </div>
                   <div className="item-name">{org.name || org.login}</div>
                   <div className="item-checkbox">
@@ -262,7 +264,9 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
                   onClick={() => handleRepoToggle(repo.id.toString())}
                 >
                   <div className="item-avatar">
-                    <img src={repo.owner?.avatar_url || '📦'} alt={repo.name} />
+                    {repo.owner?.avatar_url ? (
+                      <img src={repo.owner.avatar_url} alt={repo.name} />
+                    ) : null}
                   </div>
                   <div className="item-details">
                     <div className="item-name">{repo.name}</div>
