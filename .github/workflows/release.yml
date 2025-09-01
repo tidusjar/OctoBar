@@ -46,12 +46,17 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0 # Required for semantic-release
+        token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -72,7 +77,6 @@ jobs:
         semantic_version: 21
         extra_plugins: |
           @semantic-release/changelog
-          @semantic-release/git
         dry_run: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
