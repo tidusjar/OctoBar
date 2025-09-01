@@ -25,7 +25,6 @@
   "author": "OctoBar Contributors",
   "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
-    "@semantic-release/exec": "^10.0.3",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
