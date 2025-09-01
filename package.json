@@ -1,6 +1,6 @@
 {
   "name": "octobar",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "GitHub Notifications Menu Bar App",
   "main": "dist/main.js",
   "scripts": {
