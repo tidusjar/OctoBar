@@ -482,16 +482,9 @@ This project uses a **dual licensing model** - see the [LICENSE](LICENSE) file f
 
 - 🆓 **Free for non-commercial use** - Students, hobbyists, open source projects
 - 💰 **Paid license for commercial use** - Businesses must purchase a commercial license
-- ❌ **Liability** - No warranty or liability provided
-- ❌ **Warranty** - Software provided "as is"
 
 ### Commercial Licensing
 
 For commercial use, please contact us for licensing terms and pricing:
-- **Email**: [your-email@example.com]
-- **GitHub**: [your-github-username]
-
-This dual licensing model allows us to:
-- Support the open source community with free access
-- Generate revenue from commercial users
-- Continue developing and maintaining the project
+- **Email**: [tidusjar@gmail.com]
+- **GitHub**: [tidusjar]
