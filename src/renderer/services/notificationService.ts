@@ -97,54 +97,95 @@ class NotificationService {
    * Show desktop notification if enabled and permission granted
    */
   private async showDesktopNotification(data: NotificationData) {
+    console.log('🔔 Attempting to show desktop notification:', data);
+    console.log('🔔 Settings:', this.settings);
+
     if (!this.settings.enableDesktopNotifications) {
+      console.log('🔔 Desktop notifications disabled in settings');
       return;
     }
 
+    // Use Electron notifications if available
+    if (window.electronAPI?.showNotification) {
+      console.log('🔔 Using Electron notification API');
+      try {
+        const result = await window.electronAPI.showNotification(data.title, data.body, {
+          tag: data.tag || 'octobar-notification',
+          data: data.data
+        });
+        console.log('🔔 Electron notification result:', result);
+        return result;
+      } catch (error) {
+        console.error('🔔 Failed to show Electron notification:', error);
+        return;
+      }
+    }
+
+    // Fallback to browser notifications
+    console.log('🔔 Using browser notification API (fallback)');
+    console.log('🔔 Notification permission:', Notification.permission);
+
     // Check if notifications are supported
     if (!('Notification' in window)) {
-      console.warn('Desktop notifications are not supported in this browser');
+      console.warn('🔔 Desktop notifications are not supported in this browser');
       return;
     }
 
     // Request permission if not already granted
     if (Notification.permission === 'default') {
+      console.log('🔔 Requesting notification permission...');
       const permission = await Notification.requestPermission();
+      console.log('🔔 Permission result:', permission);
       if (permission !== 'granted') {
-        console.warn('Desktop notification permission denied');
+        console.warn('🔔 Desktop notification permission denied');
         return;
       }
     }
 
     // Don't show notification if permission is denied
     if (Notification.permission !== 'granted') {
+      console.log('🔔 Notification permission not granted:', Notification.permission);
       return;
     }
 
     try {
-      const notification = new Notification(data.title, {
+      console.log('🔔 Creating browser notification with options:', {
+        title: data.title,
         body: data.body,
-        icon: data.icon || '/icon.png', // Use app icon
+        icon: data.icon || './src/renderer/assets/icon.png',
         tag: data.tag || 'octobar-notification',
         data: data.data,
         requireInteraction: false,
         silent: false
       });
 
+      const notification = new Notification(data.title, {
+        body: data.body,
+        icon: data.icon || './src/renderer/assets/icon.png', // Use app icon
+        tag: data.tag || 'octobar-notification',
+        data: data.data,
+        requireInteraction: false,
+        silent: false
+      });
+
+      console.log('🔔 Browser notification created successfully:', notification);
+
       // Auto-close notification after 5 seconds
       setTimeout(() => {
         notification.close();
+        console.log('🔔 Notification auto-closed');
       }, 5000);
 
       // Handle notification click
       notification.onclick = () => {
+        console.log('🔔 Notification clicked');
         window.focus();
         notification.close();
       };
 
       return notification;
     } catch (error) {
-      console.warn('Failed to show desktop notification:', error);
+      console.error('🔔 Failed to show browser notification:', error);
     }
   }
 
@@ -152,6 +193,9 @@ class NotificationService {
    * Show a notification with both sound and desktop notification
    */
   async notify(data: NotificationData) {
+    console.log('🔔 Regular notify() called with:', data);
+    console.log('🔔 Current settings in notify():', this.settings);
+    
     // Play sound notification
     await this.playNotificationSound();
 
@@ -220,6 +264,102 @@ class NotificationService {
     }
 
     return await Notification.requestPermission();
+  }
+
+  /**
+   * Get current notification settings (for debugging)
+   */
+  getSettings(): NotificationSettings {
+    return { ...this.settings };
+  }
+
+  /**
+   * Force show a notification (for debugging) - bypasses settings
+   */
+  async forceNotify(data: NotificationData) {
+    console.log('🔧 Force notification (debug mode):', data);
+    
+    // Use Electron notifications if available
+    if (window.electronAPI?.showNotification) {
+      console.log('🔧 Using Electron notification API for force notification');
+      try {
+        const result = await window.electronAPI.showNotification(data.title, data.body, {
+          tag: data.tag || 'octobar-debug',
+          data: data.data
+        });
+        console.log('🔧 Electron force notification result:', result);
+        return result;
+      } catch (error) {
+        console.error('🔧 Failed to show Electron force notification:', error);
+        return;
+      }
+    }
+
+    // Fallback to browser notifications
+    console.log('🔧 Using browser notification API for force notification (fallback)');
+    
+    // Check if notifications are supported
+    if (!('Notification' in window)) {
+      console.warn('🔧 Desktop notifications are not supported in this browser');
+      return;
+    }
+
+    // Request permission if not already granted
+    if (Notification.permission === 'default') {
+      console.log('🔧 Requesting permission for force notification...');
+      const permission = await Notification.requestPermission();
+      console.log('🔧 Permission result:', permission);
+      if (permission !== 'granted') {
+        console.warn('🔧 Desktop notification permission denied');
+        return;
+      }
+    }
+
+    // Don't show notification if permission is denied
+    if (Notification.permission !== 'granted') {
+      console.log('🔧 Notification permission not granted:', Notification.permission);
+      return;
+    }
+
+    try {
+      console.log('🔧 Creating force notification with options:', {
+        title: data.title,
+        body: data.body,
+        icon: data.icon || './src/renderer/assets/icon.png',
+        tag: data.tag || 'octobar-debug',
+        data: data.data,
+        requireInteraction: false,
+        silent: false
+      });
+
+      const notification = new Notification(data.title, {
+        body: data.body,
+        icon: data.icon || './src/renderer/assets/icon.png',
+        tag: data.tag || 'octobar-debug',
+        data: data.data,
+        requireInteraction: false,
+        silent: false
+      });
+
+      console.log('🔧 Force notification created successfully:', notification);
+
+      // Auto-close notification after 10 seconds (longer for debugging)
+      setTimeout(() => {
+        notification.close();
+        console.log('🔧 Force notification auto-closed');
+      }, 10000);
+
+      // Handle notification click
+      notification.onclick = () => {
+        console.log('🔧 Force notification clicked');
+        window.focus();
+        notification.close();
+      };
+
+      return notification;
+    } catch (error) {
+      console.error('🔧 Failed to show force notification:', error);
+    }
   }
 }
 

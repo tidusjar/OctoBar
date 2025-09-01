@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
+import { notificationService } from '../services/notificationService';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSettingsChange?: () => void;
+  onDebugRefresh?: () => void;
 }
 
 interface Settings {
@@ -18,7 +20,7 @@ interface Settings {
   theme: 'light' | 'dark' | 'system';
 }
 
-export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, onSettingsChange, onDebugRefresh }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>({
     pat: '',
@@ -33,6 +35,9 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsMod
   const [showPATInput, setShowPATInput] = useState(false);
   const [newPAT, setNewPAT] = useState('');
   const [patError, setPatError] = useState('');
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [debugMode, setDebugMode] = useState(false);
+  const [titleClickCount, setTitleClickCount] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -56,6 +61,14 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsMod
       
       // Update local settings with current theme from context
       setSettings(prev => ({ ...prev, theme }));
+
+      // Check notification permission status
+      const status = notificationService.getNotificationStatus();
+      if (status.supported) {
+        setNotificationPermission(status.permission);
+      } else {
+        setNotificationPermission('denied');
+      }
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -140,6 +153,120 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsMod
     }
   };
 
+  const handleRequestNotificationPermission = async () => {
+    try {
+      const permission = await notificationService.requestPermission();
+      setNotificationPermission(permission);
+      
+      if (permission === 'granted') {
+        // Test notification
+        await notificationService.notify({
+          title: 'OctoBar',
+          body: 'Desktop notifications are now enabled!',
+          tag: 'permission-test'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to request notification permission:', error);
+    }
+  };
+
+  const handleTitleClick = () => {
+    const newCount = titleClickCount + 1;
+    setTitleClickCount(newCount);
+    
+    if (newCount >= 5) {
+      setDebugMode(true);
+      setTitleClickCount(0);
+      console.log('🔧 Debug mode activated!');
+    }
+  };
+
+  const handleDebugTestNotification = async () => {
+    await notificationService.notify({
+      title: 'Debug Test',
+      body: 'This is a test notification from debug mode!',
+      tag: 'debug-test'
+    });
+  };
+
+  const handleDebugForceNotification = async () => {
+    await notificationService.forceNotify({
+      title: 'Force Debug Test',
+      body: 'This is a force notification that bypasses settings!',
+      tag: 'debug-force-test'
+    });
+  };
+
+  const handleDebugTestSound = async () => {
+    await notificationService.notify({
+      title: 'Debug Sound Test',
+      body: 'Testing sound notification...',
+      tag: 'debug-sound-test'
+    });
+  };
+
+  const handleDebugTestNewNotifications = async () => {
+    await notificationService.notifyNewNotifications(3, 'octobar/debug-repo');
+  };
+
+  const handleDebugRefresh = () => {
+    if (onDebugRefresh) {
+      onDebugRefresh();
+    }
+  };
+
+  const handleDebugLogSettings = () => {
+    console.log('🔧 Debug: Current settings:', settings);
+    console.log('🔧 Debug: Notification permission:', notificationPermission);
+    console.log('🔧 Debug: Notification service status:', notificationService.getNotificationStatus());
+    console.log('🔧 Debug: Browser Notification API available:', 'Notification' in window);
+    console.log('🔧 Debug: Current Notification.permission:', Notification.permission);
+    
+    // Check notification service internal settings
+    console.log('🔧 Debug: Notification service settings (internal):', notificationService.getSettings());
+  };
+
+  const handleDebugCheckPermission = async () => {
+    console.log('🔧 Debug: Checking notification permission...');
+    const status = notificationService.getNotificationStatus();
+    console.log('🔧 Debug: Notification status:', status);
+    
+    if (status.supported && status.permission === 'default') {
+      console.log('🔧 Debug: Requesting permission...');
+      const permission = await notificationService.requestPermission();
+      console.log('🔧 Debug: Permission result:', permission);
+      setNotificationPermission(permission);
+    } else {
+      console.log('🔧 Debug: Permission already set to:', status.permission);
+    }
+  };
+
+  const handleDebugTestAllNotifications = async () => {
+    console.log('🔧 Debug: Testing all notification types...');
+    
+    // Test basic notification
+    await notificationService.notify({
+      title: 'Debug: Basic Test',
+      body: 'Testing basic notification functionality',
+      tag: 'debug-basic'
+    });
+
+    // Wait a bit, then test sound
+    setTimeout(async () => {
+      await notificationService.notify({
+        title: 'Debug: Sound Test',
+        body: 'Testing sound notification',
+        tag: 'debug-sound'
+      });
+    }, 1000);
+
+    // Wait a bit more, then test new notifications
+    setTimeout(async () => {
+      await notificationService.notifyNewNotifications(2, 'debug/test-repo');
+    }, 2000);
+  };
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -173,7 +300,15 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsMod
           onClick={(e) => e.stopPropagation()}
         >
           <div className="modal-header">
-            <h2>Settings</h2>
+            <h2 
+              className={debugMode ? 'debug-mode-active' : ''}
+              onClick={handleTitleClick}
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+              title={debugMode ? 'Debug mode active' : 'Click 5 times to activate debug mode'}
+            >
+              Settings
+              {debugMode && <span className="debug-indicator"> 🔧</span>}
+            </h2>
             <button 
               className="modal-close-button"
               onClick={handleCancel}
@@ -285,9 +420,37 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsMod
                     type="checkbox"
                     checked={settings.enableDesktopNotifications}
                     onChange={(e) => handleSettingChange('enableDesktopNotifications', e.target.checked)}
+                    disabled={notificationPermission === 'denied' || notificationPermission === 'unsupported'}
                   />
                   Enable desktop notifications
                 </label>
+                {notificationPermission === 'denied' && (
+                  <div className="setting-help error">
+                    Desktop notifications are blocked. Please enable them in your browser settings.
+                  </div>
+                )}
+                {notificationPermission === 'unsupported' && (
+                  <div className="setting-help error">
+                    Desktop notifications are not supported in this browser.
+                  </div>
+                )}
+                {notificationPermission === 'default' && (
+                  <div className="setting-help">
+                    <button 
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleRequestNotificationPermission}
+                    >
+                      Grant Permission
+                    </button>
+                    <span>Click to allow desktop notifications</span>
+                  </div>
+                )}
+                {notificationPermission === 'granted' && (
+                  <div className="setting-help success">
+                    ✓ Desktop notifications are enabled
+                  </div>
+                )}
               </div>
             </div>
 
@@ -319,6 +482,80 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsMod
                 </label>
               </div>
             </div>
+
+            {debugMode && (
+              <div className="settings-section debug-section">
+                <h3>🔧 Debug Tools</h3>
+                <div className="debug-buttons">
+                  <div className="debug-button-group">
+                    <h4>Notifications</h4>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugTestNotification}
+                      title="Test desktop notification"
+                    >
+                      Test Notification
+                    </button>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugForceNotification}
+                      title="Force notification (bypasses settings)"
+                    >
+                      Force Notification
+                    </button>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugTestSound}
+                      title="Test sound notification"
+                    >
+                      Test Sound
+                    </button>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugTestNewNotifications}
+                      title="Test new notifications alert"
+                    >
+                      Test New Notifications
+                    </button>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugTestAllNotifications}
+                      title="Test all notification types in sequence"
+                    >
+                      Test All Notifications
+                    </button>
+                  </div>
+                  
+                  <div className="debug-button-group">
+                    <h4>System</h4>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugRefresh}
+                      title="Trigger manual refresh"
+                    >
+                      Force Refresh
+                    </button>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugLogSettings}
+                      title="Log current settings to console"
+                    >
+                      Log Settings
+                    </button>
+                    <button 
+                      className="btn btn-debug"
+                      onClick={handleDebugCheckPermission}
+                      title="Check and request notification permission"
+                    >
+                      Check Permission
+                    </button>
+                  </div>
+                </div>
+                <div className="debug-info">
+                  <small>Debug mode activated. These buttons help test notification functionality.</small>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="modal-footer">

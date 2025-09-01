@@ -9,6 +9,7 @@ import { FilterSettingsModal } from './components/FilterSettingsModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useBackgroundRefresh } from './hooks/useBackgroundRefresh';
+import { notificationService } from './services/notificationService';
 import './App.css';
 
 function App() {
@@ -25,6 +26,11 @@ function App() {
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
   const [refreshInterval, setRefreshInterval] = useState<number>(5); // Default 5 minutes
+  const [notificationSettings, setNotificationSettings] = useState({
+    enableSound: true,
+    enableDesktopNotifications: true
+  });
+  const [previousNotificationCount, setPreviousNotificationCount] = useState<number>(0);
 
   // Background refresh hook
   useBackgroundRefresh({
@@ -36,6 +42,11 @@ function App() {
   useEffect(() => {
     checkSetupStatus();
   }, []);
+
+  // Initialize notification service settings
+  useEffect(() => {
+    notificationService.updateSettings(notificationSettings);
+  }, [notificationSettings]);
 
   useEffect(() => {
     if (!showSetupWizard && setupComplete && githubService) {
@@ -76,11 +87,26 @@ function App() {
       console.log('⚙️ Loading app settings...');
       if ((window.electronAPI as any)?.getSettings) {
         const settings = await (window.electronAPI as any).getSettings();
+        
+        // Load refresh interval
         if (settings?.refreshInterval) {
           setRefreshInterval(settings.refreshInterval);
           console.log(`✅ Refresh interval loaded: ${settings.refreshInterval} minutes`);
         } else {
           console.log('ℹ️ No refresh interval found in settings, using default: 5 minutes');
+        }
+
+        // Load notification settings
+        if (settings?.enableSound !== undefined || settings?.enableDesktopNotifications !== undefined) {
+          const newNotificationSettings = {
+            enableSound: settings.enableSound ?? true,
+            enableDesktopNotifications: settings.enableDesktopNotifications ?? true
+          };
+          setNotificationSettings(newNotificationSettings);
+          notificationService.updateSettings(newNotificationSettings);
+          console.log('✅ Notification settings loaded:', newNotificationSettings);
+        } else {
+          console.log('ℹ️ No notification settings found, using defaults');
         }
       } else {
         console.log('❌ getSettings method not available');
@@ -151,6 +177,18 @@ function App() {
       const count = rawNotifications.length;
       setUnreadCount(count);
       console.log(`✅ Loaded ${count} unread notifications, grouped into ${groupedNotifications.length} repositories`);
+
+      // Check for new notifications and trigger alerts
+      if (previousNotificationCount > 0 && count > previousNotificationCount) {
+        const newNotifications = count - previousNotificationCount;
+        console.log(`🔔 ${newNotifications} new notifications detected`);
+        
+        // Show notification for new notifications
+        await notificationService.notifyNewNotifications(newNotifications);
+      }
+      
+      // Update previous count for next comparison
+      setPreviousNotificationCount(count);
     } catch (error) {
       console.error('Failed to load notifications:', error);
       if (error instanceof Error) {
@@ -446,6 +484,7 @@ const handleSettingsChange = async () => {
           isOpen={showGeneralSettings}
           onClose={() => setShowGeneralSettings(false)}
           onSettingsChange={handleSettingsChange}
+          onDebugRefresh={handleRefresh}
         />
       </div>
     </ThemeProvider>

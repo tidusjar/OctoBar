@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain } from 'electron';
+import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, Notification } from 'electron';
 import * as path from 'path';
 import { SecureStorage } from './secureStorage';
 
@@ -178,6 +178,48 @@ function openSettings() {
   console.log('Opening settings...');
 }
 
+function showNotification(title: string, body: string, options: any = {}) {
+  console.log('🔔 Showing Electron notification:', { title, body, options });
+  
+  // Check if notifications are supported
+  if (!Notification.isSupported()) {
+    console.warn('🔔 Electron notifications are not supported on this system');
+    return;
+  }
+
+  try {
+    const notification = new Notification({
+      title,
+      body,
+      icon: options.icon || path.join(__dirname, '../renderer/assets/icon.png'),
+      silent: false,
+      ...options
+    });
+
+    notification.on('click', () => {
+      console.log('🔔 Notification clicked');
+      // Show the popup window when notification is clicked
+      if (popupWindow) {
+        popupWindow.show();
+        popupWindow.focus();
+      }
+    });
+
+    notification.on('show', () => {
+      console.log('🔔 Notification shown');
+    });
+
+    notification.on('close', () => {
+      console.log('🔔 Notification closed');
+    });
+
+    notification.show();
+    return notification;
+  } catch (error) {
+    console.error('🔔 Failed to show Electron notification:', error);
+  }
+}
+
 // IPC handlers for PAT management
 ipcMain.handle('save-pat', async (_, pat: string) => {
   return await SecureStorage.savePAT(pat);
@@ -225,6 +267,11 @@ ipcMain.handle('set-settings', async (_, settings: any) => {
 
 ipcMain.handle('get-settings', async () => {
   return await SecureStorage.getSettings();
+});
+
+// IPC handler for notifications
+ipcMain.handle('show-notification', async (_, title: string, body: string, options: any = {}) => {
+  return showNotification(title, body, options);
 });
 
 // IPC handler for app control

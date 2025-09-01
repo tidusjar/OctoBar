@@ -32,6 +32,8 @@ declare global {
       onFocusModeChange: (callback: (mode: string) => void) => void;
       // Test method
       test: () => Promise<string>;
+      // Notifications
+      showNotification: (title: string, body: string, options?: any) => Promise<any>;
     };
   }
 }

@@ -79,6 +79,12 @@ try {
       console.log('openInBrowser called with:', url);
       return ipcRenderer.invoke('open-in-browser', url);
     },
+    
+    // Notifications
+    showNotification: (title: string, body: string, options: any = {}) => {
+      console.log('showNotification called with:', { title, body, options });
+      return ipcRenderer.invoke('show-notification', title, body, options);
+    },
   });
   
   console.log('electronAPI exposed successfully');
