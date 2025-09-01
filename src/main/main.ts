@@ -13,8 +13,19 @@ function createTray() {
   let icon: Electron.NativeImage;
   
   try {
-    icon = nativeImage.createFromPath(path.join(__dirname, '../renderer/assets/icon.png'));
-    icon.setTemplateImage(true);
+    if (process.platform === 'win32') {
+      // Windows: use .ico file if available, otherwise fallback to .png
+      const iconPath = path.join(__dirname, '../renderer/assets/icon.ico');
+      if (require('fs').existsSync(iconPath)) {
+        icon = nativeImage.createFromPath(iconPath);
+      } else {
+        icon = nativeImage.createFromPath(path.join(__dirname, '../renderer/assets/icon.png'));
+      }
+    } else {
+      // macOS: use .png with template image
+      icon = nativeImage.createFromPath(path.join(__dirname, '../renderer/assets/icon.png'));
+      icon.setTemplateImage(true);
+    }
   } catch (error) {
     // Fallback to a default icon if the file doesn't exist
     console.log('Icon file not found, using default icon');
@@ -25,12 +36,28 @@ function createTray() {
   tray.setToolTip('OctoBar - GitHub Notifications');
   
   // Set badge count (this will show on macOS)
-  tray.setTitle('4'); // This shows the badge count on macOS
+  if (process.platform === 'darwin') {
+    tray.setTitle('4'); // This shows the badge count on macOS
+  }
   
   // Left click shows the popup
   tray.on('click', () => {
     togglePopup();
   });
+  
+  // Right click shows context menu (Windows behavior)
+  if (process.platform === 'win32') {
+    tray.on('right-click', () => {
+      const contextMenu = Menu.buildFromTemplate([
+        { label: 'Show Notifications', click: () => togglePopup() },
+        { type: 'separator' },
+        { label: 'Settings', click: () => openSettings() },
+        { type: 'separator' },
+        { label: 'Quit', click: () => app.quit() }
+      ]);
+      tray?.popUpContextMenu(contextMenu);
+    });
+  }
   
   // Remove the automatic context menu display
   // Users can access context menu through other means if needed
@@ -64,11 +91,25 @@ function createPopupWindow() {
     console.log('✅ Preload script found at:', preloadPath);
   }
   
+  // Calculate window position based on platform
+  let windowX: number;
+  let windowY: number;
+  
+  if (process.platform === 'win32') {
+    // Windows: position relative to tray icon (usually bottom-right)
+    windowX = width - 470;
+    windowY = height - 700; // Position above taskbar
+  } else {
+    // macOS: position relative to top-right
+    windowX = width - 470;
+    windowY = 50;
+  }
+  
   popupWindow = new BrowserWindow({
     width: 450,
     height: 650,
-    x: width - 470,
-    y: 50,
+    x: windowX,
+    y: windowY,
     frame: false,
     resizable: false,
     show: false,

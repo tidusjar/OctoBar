@@ -1,18 +1,22 @@
 # OctoBar - GitHub Notifications Menu Bar App
 
-A macOS menu bar application built with Electron + React + TypeScript that provides a filtered inbox for GitHub notifications.
+A cross-platform menu bar/system tray application built with Electron + React + TypeScript that provides a filtered inbox for GitHub notifications.
+
+**Supported Platforms:**
+- macOS (menu bar integration)
+- Windows (system tray integration)
 
 ## Features
 
-- **Menu Bar Integration**: Tray icon with unread notification badge count
-- **Native macOS Styling**: Dropdown menu styled like native macOS menus
+- **System Tray Integration**: Tray icon with unread notification badge count (macOS) and context menu (Windows)
+- **Cross-Platform Styling**: Native-like dropdown menu styled for both macOS and Windows
 - **Smart Grouping**: Notifications grouped by Repository
 - **Rich Notifications**: Shows title, type (PR, issue, review request, mention), and relative time
 - **Quick Actions**: Mark as read, Open in browser, Mute thread, Star/Prioritize
 - **Smart Filters**: Work, Personal, and All views
 - **GitHub API Integration**: Real-time notifications from GitHub API
 - **Setup Wizard**: Guided setup for GitHub Personal Access Token
-- **Secure Storage**: PAT stored securely using macOS Keychain
+- **Secure Storage**: PAT stored securely using system keychain (macOS Keychain/Windows Credential Manager)
 - **Real-time Updates**: Live notification loading and status updates
 - **Error Handling**: Graceful error handling with retry functionality
 - **Offline Caching**: Cache last 100 notifications for quick loading
@@ -58,7 +62,7 @@ src/
 
 - Node.js 18+ 
 - npm or yarn
-- macOS (for native menu bar integration)
+- **macOS** (for native menu bar integration) or **Windows** (for system tray integration)
 
 ### Installation
 
@@ -79,7 +83,19 @@ npm install
 
 ### Development
 
+#### macOS/Linux
 1. Start the development server:
+```bash
+npm run dev
+```
+
+#### Windows
+1. Start the development server using the Windows script:
+```batch
+scripts\dev.bat
+```
+
+Or manually:
 ```bash
 npm run dev
 ```
@@ -89,8 +105,9 @@ This will:
 - Compile the TypeScript main process
 - Launch the Electron app
 
-2. The app will appear in your menu bar with a tray icon
-3. Click the icon to open the dropdown with GitHub notifications
+2. The app will appear in your menu bar (macOS) or system tray (Windows) with a tray icon
+3. **macOS**: Click the icon to open the dropdown with GitHub notifications
+4. **Windows**: Left-click to open notifications, right-click for context menu
 
 ### Building
 
@@ -100,18 +117,35 @@ npm run build
 ```
 
 2. Create distributable:
+
+**For current platform:**
 ```bash
 npm run dist
 ```
+
+**For Windows specifically:**
+```bash
+npm run dist:win
+```
+
+**For macOS specifically:**
+```bash
+npm run dist:mac
+```
+
+This will create platform-specific installers:
+- **Windows**: Creates an NSIS installer (`.exe`) in the `release` folder
+- **macOS**: Creates a DMG file in the `release` folder
 
 ## Current Implementation Status
 
 ### ✅ Completed
 - Electron main process with tray app and popup window
+- Cross-platform support (macOS and Windows)
 - React frontend with component structure
 - GitHub API integration with real notifications
 - Personal Access Token setup wizard
-- Secure PAT storage using macOS Keychain
+- Secure PAT storage using system keychain (macOS Keychain/Windows Credential Manager)
 - TypeScript type definitions
 - Native macOS-style UI components
 - Quick action buttons (mark as read, open in browser)
@@ -143,7 +177,7 @@ npm run dist
 
 The app now integrates with the real GitHub API:
 
-- **Authentication**: Uses Personal Access Token (PAT) stored securely in macOS Keychain
+- **Authentication**: Uses Personal Access Token (PAT) stored securely in system keychain
 - **API Endpoints**: Fetches notifications from GitHub Notifications API
 - **Real-time Data**: Loads actual unread notifications from your GitHub account
 - **Smart URL Building**: Automatically generates proper GitHub URLs for different notification types
@@ -161,13 +195,37 @@ New users are guided through a setup process:
 
 The wizard validates your PAT and ensures it has the necessary permissions for notifications.
 
+## Secure Storage
+
+### Cross-Platform Credential Storage
+
+OctoBar uses the `keytar` library to securely store your GitHub Personal Access Token (PAT) in the operating system's native credential store:
+
+- **macOS**: Stored in macOS Keychain (`/Applications/Utilities/Keychain Access.app`)
+- **Windows**: Stored in Windows Credential Manager (`Control Panel > Credential Manager > Windows Credentials`)
+- **Linux**: Stored in libsecret/gnome-keyring
+
+#### Windows Credential Manager Details
+
+On Windows, your PAT will appear in Credential Manager as:
+- **Internet or network address**: `OctoBar`
+- **User name**: `GitHub_PAT`
+- **Password**: Your encrypted GitHub Personal Access Token
+
+You can view/manage this credential by:
+1. Opening **Control Panel** → **Credential Manager**
+2. Clicking **Windows Credentials**
+3. Looking for the **OctoBar** entry
+
+The credential is encrypted using Windows' built-in encryption and is only accessible to your user account.
+
 ## Architecture
 
 ### Main Process (Electron)
-- Manages the system tray and popup window
+- Manages the system tray and popup window with cross-platform support
 - Handles app lifecycle and window management
 - Provides secure IPC communication via preload script
-- Manages secure storage of GitHub PAT using keytar
+- Manages secure storage of GitHub PAT using keytar (supports both macOS Keychain and Windows Credential Manager)
 
 ### Renderer Process (React)
 - Renders the notification UI
@@ -186,9 +244,9 @@ The wizard validates your PAT and ensures it has the necessary permissions for n
 
 The app uses:
 - CSS custom properties for consistent theming
-- Backdrop filters for modern macOS aesthetics
+- Backdrop filters for modern aesthetics (macOS-style)
 - Responsive design principles
-- Native macOS color palette
+- Cross-platform color palette with native system integration
 - Smooth transitions and hover effects
 - Professional setup wizard styling with animations
 

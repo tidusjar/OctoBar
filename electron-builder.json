@@ -13,6 +13,21 @@
     "target": "dmg",
     "icon": "src/renderer/assets/icon.png"
   },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "src/renderer/assets/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
   "dmg": {
     "title": "OctoBar",
     "icon": "src/renderer/assets/icon.png",
