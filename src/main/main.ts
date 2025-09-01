@@ -118,17 +118,30 @@ function createPopupWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: preloadPath
+      preload: preloadPath,
+      devTools: true // Enable dev tools for debugging
     }
   });
   
-  // Add error handling for preload script
+  // Add comprehensive error handling
   popupWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     console.error('❌ Failed to load:', errorCode, errorDescription, validatedURL);
   });
   
   popupWindow.webContents.on('preload-error', (event, preloadPath, error) => {
     console.error('❌ Preload script error:', preloadPath, error);
+  });
+
+  popupWindow.webContents.on('did-finish-load', () => {
+    console.log('✅ Page finished loading');
+  });
+
+  popupWindow.webContents.on('dom-ready', () => {
+    console.log('✅ DOM is ready');
+  });
+
+  popupWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`🔍 Renderer console [${level}]:`, message);
   });
   
   // Load the React app
@@ -138,9 +151,40 @@ function createPopupWindow() {
     console.log('🔄 Loading from Vite dev server: http://localhost:3001');
     popupWindow.loadURL('http://localhost:3001');
   } else {
-    popupWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    // In packaged app, the renderer files are in the renderer subdirectory
+    const indexPath = path.join(__dirname, 'renderer', 'index.html');
+    console.log('🔄 Loading from packaged app:', indexPath);
+    console.log('🔄 __dirname:', __dirname);
+    console.log('🔄 app.isPackaged:', app.isPackaged);
+    
+    // Check if the file exists
+    const fs = require('fs');
+    if (fs.existsSync(indexPath)) {
+      console.log('✅ HTML file exists at:', indexPath);
+      popupWindow.loadFile(indexPath);
+    } else {
+      console.error('❌ HTML file not found at:', indexPath);
+      console.error('Available files in __dirname:');
+      try {
+        const files = fs.readdirSync(__dirname);
+        console.error('Files:', files);
+        if (fs.existsSync(path.join(__dirname, 'renderer'))) {
+          const rendererFiles = fs.readdirSync(path.join(__dirname, 'renderer'));
+          console.error('Renderer files:', rendererFiles);
+        }
+      } catch (err) {
+        console.error('Error reading directory:', err);
+      }
+    }
   }
   
+  // Add keyboard shortcut to open dev tools (Cmd+Option+I on macOS, Ctrl+Shift+I on Windows)
+  popupWindow.webContents.on('before-input-event', (event, input) => {
+    if ((input.meta || input.control) && input.shift && input.key.toLowerCase() === 'i') {
+      popupWindow?.webContents.openDevTools();
+    }
+  });
+
   // Hide window when it loses focus
   popupWindow.on('blur', () => {
     popupWindow?.hide();
@@ -191,7 +235,7 @@ function showNotification(title: string, body: string, options: any = {}) {
     const notification = new Notification({
       title,
       body,
-      icon: options.icon || path.join(__dirname, '../renderer/assets/icon.png'),
+      icon: options.icon || path.join(__dirname, 'renderer/assets/icon.png'),
       silent: false,
       ...options
     });

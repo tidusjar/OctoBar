@@ -152,6 +152,113 @@ This will create platform-specific installers:
 - **Windows**: Creates an NSIS installer (`.exe`) in the `release` folder
 - **macOS**: Creates a DMG file in the `release` folder
 
+## Automated Builds & Releases
+
+OctoBar uses **semantic-release** with **Conventional Commits** for fully automated versioning and releasing:
+
+### 🚀 Semantic Release System
+- **Industry Standard**: Uses the proven `semantic-release` tool
+- **Conventional Commits**: Automatically determines version increments based on commit messages
+- **Automatic Versioning**: Uses semantic versioning (e.g., v1.0.0, v1.1.0, v2.0.0)
+- **Multi-platform**: Builds for both macOS and Windows
+- **Changelog Generation**: Automatically generates changelogs and release notes
+
+### 📝 Conventional Commit Types
+Semantic-release analyzes commit messages to determine version increments:
+
+- **`feat:`** → Minor version bump (1.0.0 → 1.1.0)
+- **`fix:`** → Patch version bump (1.0.0 → 1.0.1)
+- **`perf:`** → Patch version bump (1.0.0 → 1.0.1)
+- **`refactor:`** → Patch version bump (1.0.0 → 1.0.1)
+- **`feat!:`** or **`fix!:`** → Major version bump (1.0.0 → 2.0.0)
+- **`docs:`, `style:`, `test:`, `chore:`** → No version bump (unless breaking)
+
+### 🎯 Release Behavior
+
+#### Automatic Releases
+- **Trigger**: Push to `main` branch with conventional commits
+- **Format**: `v1.0.0`, `v1.1.0`, `v2.0.0`
+- **Type**: Stable release with full changelog
+- **Artifacts**: macOS DMG/zip and Windows EXE/zip
+
+#### Pull Request Builds
+- **Trigger**: Any pull request to `main`
+- **Purpose**: Build validation and testing
+- **Artifacts**: Available for 7 days for testing
+- **No Release**: No releases created for PRs
+
+### 🔧 Workflow Features
+- **Semantic Versioning**: Automatic version calculation
+- **Changelog Generation**: Auto-generated from commit messages
+- **Git Tagging**: Automatic git tag creation
+- **GitHub Releases**: Automatic GitHub release creation
+- **Multi-platform Builds**: macOS and Windows support
+- **Artifact Management**: 90-day retention for releases
+
+### 📋 Configuration Files
+- `.github/workflows/release.yml` - Main workflow using semantic-release
+- `.releaserc.json` - Semantic-release configuration
+
+### 💡 How to Use Conventional Commits
+
+To trigger automatic releases, use conventional commit messages:
+
+```bash
+# Minor version bump (1.0.0 → 1.1.0)
+git commit -m "feat: add notification sound settings"
+git commit -m "feat(ui): implement dark mode toggle"
+
+# Patch version bump (1.0.0 → 1.0.1)
+git commit -m "fix: resolve white screen issue in packaged app"
+git commit -m "fix(notifications): handle permission denied gracefully"
+git commit -m "perf: optimize background refresh interval"
+git commit -m "refactor: simplify notification service"
+
+# Major version bump (1.0.0 → 2.0.0)
+git commit -m "feat!: redesign notification system with breaking changes"
+git commit -m "fix!: change API structure (breaking change)"
+
+# No version bump (documentation, tests, etc.)
+git commit -m "docs: update README with new features"
+git commit -m "test: add unit tests for notification service"
+git commit -m "chore: update dependencies"
+```
+
+### 🎯 Examples
+
+- **`feat: add desktop notifications`** → Creates v1.1.0 (minor bump)
+- **`fix: resolve packaging issue`** → Creates v1.0.1 (patch bump)
+- **`feat!: redesign UI with breaking changes`** → Creates v2.0.0 (major bump)
+- **`docs: update README`** → No release (no version bump)
+
+## Troubleshooting
+
+### Common Issues
+
+#### "Not allowed to load local resource" Error
+If you see an error like:
+```
+Not allowed to load local resource: file:///Applications/OctoBar.app/Contents/Resources/app.asar/renderer/index.html
+```
+
+This indicates a file path issue in the packaged app. The fix has been implemented in the main process to correctly locate the renderer files.
+
+#### Debugging Packaged App Structure
+Use the debug script to check the file structure in a packaged app:
+```bash
+node scripts/check-packaged-structure.js
+```
+
+#### Development vs Production
+- **Development**: App loads from Vite dev server (`http://localhost:3001`)
+- **Production**: App loads from packaged files (`dist/renderer/index.html`)
+
+#### Console Logs
+The app includes extensive console logging to help debug issues:
+- Main process logs appear in the terminal/console
+- Renderer process logs appear in the browser dev tools
+- Debug mode provides additional logging and testing tools
+
 ## Current Implementation Status
 
 ### ✅ Completed
