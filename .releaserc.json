@@ -5,6 +5,7 @@
       "prerelease": "alpha"
     }
   ],
+  "repositoryUrl": "https://github.com/tidusjar/OctoBar.git",
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",

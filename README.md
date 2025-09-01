@@ -177,10 +177,10 @@ Semantic-release analyzes commit messages to determine version increments:
 
 #### Pre-Releases (Current)
 - **Trigger**: Push to `main` branch with conventional commits
-- **Format**: `v1.0.0-beta.1`, `v1.1.0-beta.2`, `v2.0.0-beta.1`
+- **Format**: `v1.0.0-alpha.1`, `v1.1.0-alpha.2`, `v2.0.0-alpha.1`
 - **Type**: Pre-release for testing and development
 - **Artifacts**: macOS DMG/zip and Windows EXE/zip
-- **Note**: All releases are currently pre-releases until ready for stable v1.0.0
+- **Note**: All releases are currently alpha pre-releases until ready for stable v1.0.0
 
 #### Pull Request Builds
 - **Trigger**: Any pull request to `main`
@@ -227,9 +227,9 @@ git commit -m "chore: update dependencies"
 
 ### 🎯 Examples
 
-- **`feat: add desktop notifications`** → Creates v1.1.0-beta.1 (minor bump)
-- **`fix: resolve packaging issue`** → Creates v1.0.1-beta.1 (patch bump)
-- **`feat!: redesign UI with breaking changes`** → Creates v2.0.0-beta.1 (major bump)
+- **`feat: add desktop notifications`** → Creates v1.1.0-alpha.1 (minor bump)
+- **`fix: resolve packaging issue`** → Creates v1.0.1-alpha.1 (patch bump)
+- **`feat!: redesign UI with breaking changes`** → Creates v2.0.0-alpha.1 (major bump)
 - **`docs: update README`** → No release (no version bump)
 
 ### 🚀 Creating Your First Stable Release
