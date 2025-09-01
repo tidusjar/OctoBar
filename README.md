@@ -20,6 +20,12 @@ A cross-platform menu bar/system tray application built with Electron + React + 
 - **Real-time Updates**: Live notification loading and status updates
 - **Error Handling**: Graceful error handling with retry functionality
 - **Offline Caching**: Cache last 100 notifications for quick loading
+- **Background Refresh**: Automatic notification updates at configurable intervals (1-60 minutes)
+- **Desktop Notifications**: Native desktop notifications with sound alerts
+- **Notification Settings**: Configurable sound and desktop notification preferences
+- **Debug Mode**: Hidden developer tools for testing and troubleshooting
+- **Theme Support**: Light, dark, and system theme modes
+- **Filter Management**: Advanced filtering by organizations and repositories
 
 ## Project Structure
 
@@ -36,16 +42,25 @@ src/
 │   │   ├── NotificationList.tsx
 │   │   ├── NotificationItem.tsx
 │   │   ├── QuickActions.tsx
-│   │   └── SetupWizard.tsx
+│   │   ├── SetupWizard.tsx
+│   │   ├── SettingsModal.tsx
+│   │   ├── FilterSettingsModal.tsx
 │   │   └── setup/       # Setup wizard steps
 │   │       ├── WelcomeStep.tsx
 │   │       ├── PATStep.tsx
 │   │       ├── FilterStep.tsx
 │   │       └── CompletionStep.tsx
 │   ├── services/        # Data services
-│   │   └── githubService.ts
+│   │   ├── githubService.ts
+│   │   └── notificationService.ts
+│   ├── contexts/        # React contexts
+│   │   └── ThemeContext.tsx
+│   ├── hooks/           # Custom React hooks
+│   │   └── useBackgroundRefresh.ts
 │   ├── types/           # TypeScript type definitions
-│   │   └── notifications.ts
+│   │   ├── notifications.ts
+│   │   ├── electron.d.ts
+│   │   └── electron-api.d.ts
 │   ├── App.tsx          # Main React component
 │   ├── main.tsx         # React entry point
 │   ├── index.html       # HTML template
@@ -156,6 +171,14 @@ This will create platform-specific installers:
 - Notification grouping by repository
 - Mark as read functionality (individual and bulk)
 - Refresh notifications functionality
+- **Background refresh system** with configurable intervals (1-60 minutes)
+- **Desktop notifications** with native Electron notification API
+- **Sound notifications** with custom audio generation
+- **Settings management** with persistent storage
+- **Theme system** (light, dark, system)
+- **Advanced filtering** by organizations and repositories
+- **Debug mode** with comprehensive testing tools
+- **Notification permission handling** with user-friendly UI
 
 ### 🔄 In Progress
 - Filter implementation (Work/Personal views need backend logic)
@@ -166,11 +189,11 @@ This will create platform-specific installers:
 - Implement Work/Personal filter logic based on organization/repository
 - Add mute thread API integration
 - Add star thread API integration
-- Add notification refresh polling
 - Implement macOS Focus mode detection
-- Add notification sound alerts
 - Add keyboard shortcuts
 - Add notification search functionality
+- Add notification history/archive
+- Add notification categories and custom filters
 
 ## GitHub Integration
 
@@ -193,6 +216,56 @@ New users are guided through a setup process:
 4. **Completion**: Setup complete, ready to use
 
 The wizard validates your PAT and ensures it has the necessary permissions for notifications.
+
+## Notification System
+
+OctoBar includes a comprehensive notification system with both visual and audio alerts:
+
+### Desktop Notifications
+- **Native Integration**: Uses Electron's native notification API for proper desktop integration
+- **Click to Focus**: Clicking notifications brings the app to focus
+- **Auto-dismiss**: Notifications automatically close after 5 seconds
+- **Permission Handling**: Automatic permission requests with user-friendly UI
+
+### Sound Notifications
+- **Custom Audio**: Generates custom notification sounds using Web Audio API
+- **No External Files**: Sounds are generated programmatically, no audio files required
+- **Configurable**: Can be enabled/disabled in settings
+
+### Background Refresh
+- **Automatic Updates**: Fetches new notifications at configurable intervals
+- **Smart Detection**: Only shows notifications for new notifications (count increases)
+- **Configurable Intervals**: Choose from 1, 5, 15, 30, or 60 minutes
+- **Settings Integration**: Refresh interval is saved and restored between sessions
+
+### Settings Management
+- **Persistent Storage**: All settings are saved securely and restored on app restart
+- **Real-time Updates**: Settings changes take effect immediately
+- **Theme Support**: Light, dark, and system theme modes
+- **Filter Management**: Advanced filtering by organizations and repositories
+
+## Debug Mode
+
+OctoBar includes a hidden debug mode for developers and power users:
+
+### Activation
+1. Open the Settings modal
+2. Click the "Settings" title 5 times
+3. Debug mode will activate (title will turn orange and show a wrench emoji)
+
+### Debug Tools
+- **Notification Testing**: Test different types of notifications
+- **Force Notifications**: Bypass settings to test notification functionality
+- **Permission Checking**: Check and request notification permissions
+- **Settings Logging**: View current settings and notification status
+- **Manual Refresh**: Force manual notification refresh
+- **Comprehensive Logging**: Detailed console output for troubleshooting
+
+### Use Cases
+- **Development**: Test notification functionality during development
+- **Troubleshooting**: Diagnose notification issues
+- **User Testing**: Verify notification functionality works correctly
+- **Demo Purposes**: Show notification features to others
 
 ## Secure Storage
 
@@ -225,19 +298,26 @@ The credential is encrypted using Windows' built-in encryption and is only acces
 - Handles app lifecycle and window management
 - Provides secure IPC communication via preload script
 - Manages secure storage of GitHub PAT using keytar (supports both macOS Keychain and Windows Credential Manager)
+- **Native Notifications**: Handles desktop notifications using Electron's Notification API
+- **Settings Management**: Stores and retrieves application settings securely
 
 ### Renderer Process (React)
-- Renders the notification UI
+- Renders the notification UI with theme support
 - Manages component state and user interactions
 - Communicates with main process via electronAPI
 - Handles GitHub API calls through GitHubService
+- **Background Refresh**: Automatic notification updates using custom hooks
+- **Notification Service**: Manages sound and desktop notifications
+- **Settings UI**: Comprehensive settings management with real-time updates
 
 ### Data Flow
-1. GitHubService fetches real notifications from GitHub API
-2. App component manages global state and notification grouping
-3. Components render notifications with proper grouping and styling
-4. User actions trigger service methods for real API calls
-5. UI updates reflect real-time state changes
+1. **Background Refresh**: useBackgroundRefresh hook triggers periodic updates
+2. **GitHubService**: Fetches real notifications from GitHub API
+3. **NotificationService**: Detects new notifications and triggers alerts
+4. **App Component**: Manages global state and notification grouping
+5. **Components**: Render notifications with proper grouping and styling
+6. **User Actions**: Trigger service methods for real API calls
+7. **UI Updates**: Reflect real-time state changes and theme updates
 
 ## Styling
 
