@@ -175,11 +175,12 @@ Semantic-release analyzes commit messages to determine version increments:
 
 ### 🎯 Release Behavior
 
-#### Automatic Releases
+#### Pre-Releases (Current)
 - **Trigger**: Push to `main` branch with conventional commits
-- **Format**: `v1.0.0`, `v1.1.0`, `v2.0.0`
-- **Type**: Stable release with full changelog
+- **Format**: `v1.0.0-beta.1`, `v1.1.0-beta.2`, `v2.0.0-beta.1`
+- **Type**: Pre-release for testing and development
 - **Artifacts**: macOS DMG/zip and Windows EXE/zip
+- **Note**: All releases are currently pre-releases until ready for stable v1.0.0
 
 #### Pull Request Builds
 - **Trigger**: Any pull request to `main`
@@ -226,10 +227,24 @@ git commit -m "chore: update dependencies"
 
 ### 🎯 Examples
 
-- **`feat: add desktop notifications`** → Creates v1.1.0 (minor bump)
-- **`fix: resolve packaging issue`** → Creates v1.0.1 (patch bump)
-- **`feat!: redesign UI with breaking changes`** → Creates v2.0.0 (major bump)
+- **`feat: add desktop notifications`** → Creates v1.1.0-beta.1 (minor bump)
+- **`fix: resolve packaging issue`** → Creates v1.0.1-beta.1 (patch bump)
+- **`feat!: redesign UI with breaking changes`** → Creates v2.0.0-beta.1 (major bump)
 - **`docs: update README`** → No release (no version bump)
+
+### 🚀 Creating Your First Stable Release
+
+When you're ready for a stable v1.0.0 release, simply update the `.releaserc.json`:
+
+```json
+{
+  "branches": [
+    "main"  // Remove the prerelease configuration
+  ]
+}
+```
+
+This will switch from pre-releases to stable releases.
 
 ## Troubleshooting
 
