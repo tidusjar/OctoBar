@@ -1,185 +1,90 @@
-name: Build and Release
+name: Release
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  # Build and test on PRs
-  build:
-    runs-on: ${{ matrix.os }}
-    if: github.event_name == 'pull_request'
-    
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest]
-        
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build application
-      run: npm run build
-      
-    - name: Build distributables
-      run: npm run dist
-      
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: octobar-${{ matrix.os }}-pr-${{ github.sha }}
-        path: release/
-        retention-days: 7
-
-  # Semantic release for main branch
   release:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Required for semantic-release
-        token: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build application
-      run: npm run build
-      
-    - name: Semantic Release
-      id: semantic-release
-      uses: cycjimmy/semantic-release-action@v4
-      with:
-        semantic_version: 21
-        extra_plugins: |
-          @semantic-release/changelog
-        dry_run: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Build distributables for release
-  build-release:
-    needs: release
     runs-on: ${{ matrix.os }}
-    if: needs.release.outputs.new-release-published == 'true'
-    
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build application
-      run: npm run build
-      
-    - name: Build distributables
-      run: npm run dist
-      
-    - name: Upload macOS artifacts
-      if: matrix.os == 'macos-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: octobar-macos-${{ needs.release.outputs.new-release-version }}
-        path: |
-          release/*.dmg
-          release/*.zip
-        retention-days: 90
-        
-    - name: Upload Windows artifacts
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: octobar-windows-${{ needs.release.outputs.new-release-version }}
-        path: |
-          release/*.exe
-          release/*.zip
-        retention-days: 90
-
-  # Create GitHub release with artifacts
-  github-release:
-    needs: [release, build-release]
-    runs-on: ubuntu-latest
-    if: needs.release.outputs.new-release-published == 'true'
+        include:
+          - os: macos-latest
+            platform: mac
+            dist-command: dist:mac
+          - os: windows-latest
+            platform: win
+            dist-command: dist:win
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Download macOS artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: octobar-macos-${{ needs.release.outputs.new-release-version }}
-        path: ./artifacts/macos
-        
-    - name: Download Windows artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: octobar-windows-${{ needs.release.outputs.new-release-version }}
-        path: ./artifacts/windows
-        
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ needs.release.outputs.new-release-version }}
-        name: OctoBar ${{ needs.release.outputs.new-release-version }}
-        body: |
-          ## 🎉 OctoBar ${{ needs.release.outputs.new-release-version }}
-          
-          ### 📦 Downloads
-          
-          **macOS:**
-          - Download the \`.dmg\` file for easy installation
-          - Or download the \`.zip\` file for manual installation
-          
-          **Windows:**
-          - Download the \`.exe\` installer for easy installation
-          - Or download the \`.zip\` file for manual installation
-          
-          ### 🐛 Found a bug?
-          Please report issues on the [GitHub Issues page](https://github.com/${{ github.repository }}/issues).
-          
-          ### 📝 Documentation
-          See the [README](https://github.com/${{ github.repository }}/blob/main/README.md) for setup instructions and feature documentation.
-        files: |
-          ./artifacts/macos/*
-          ./artifacts/windows/*
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Build platform-specific package
+        run: npm run ${{ matrix.dist-command }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.nsis
+          if-no-files-found: error
+
+  publish:
+    needs: release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          # Copy all build artifacts to release-assets directory
+          find artifacts -name "*.dmg" -exec cp {} release-assets/ \;
+          find artifacts -name "*.exe" -exec cp {} release-assets/ \;
+          find artifacts -name "*.nsis" -exec cp {} release-assets/ \;
+          ls -la release-assets/
+
+      - name: Release with semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release

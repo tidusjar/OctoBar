@@ -25,6 +25,7 @@
   "author": "OctoBar Contributors",
   "license": "SEE LICENSE IN LICENSE",
   "devDependencies": {
+    "@semantic-release/exec": "^10.0.3",
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
@@ -32,6 +33,7 @@
     "concurrently": "^8.2.2",
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
+    "semantic-release": "^21.1.2",
     "sharp": "^0.34.3",
     "typescript": "^5.3.3",
     "vite": "^5.0.10"

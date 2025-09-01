@@ -63,6 +63,25 @@
         "npmPublish": false
       }
     ],
-    "@semantic-release/github"
+
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "release-assets/*.dmg",
+            "label": "macOS DMG"
+          },
+          {
+            "path": "release-assets/*.exe",
+            "label": "Windows Installer"
+          },
+          {
+            "path": "release-assets/*.nsis",
+            "label": "Windows NSIS"
+          }
+        ]
+      }
+    ]
   ]
 }
