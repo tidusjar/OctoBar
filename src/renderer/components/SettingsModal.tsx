@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSettingsChange?: () => void;
 }
 
 interface Settings {
@@ -17,7 +18,7 @@ interface Settings {
   theme: 'light' | 'dark' | 'system';
 }
 
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>({
     pat: '',
@@ -48,7 +49,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }
 
       // Load other settings from storage
-      const storedSettings = await window.electronAPI.getSettings?.();
+      const storedSettings = await (window.electronAPI as any).getSettings?.();
       if (storedSettings) {
         setSettings(prev => ({ ...prev, ...storedSettings }));
       }
@@ -66,7 +67,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       
       // Save PAT if changed
       if (newPAT && newPAT !== settings.pat) {
-        const success = await window.electronAPI.setPAT(newPAT);
+        const success = await (window.electronAPI as any).setPAT(newPAT);
         if (success) {
           setSettings(prev => ({ ...prev, pat: newPAT }));
           setNewPAT('');
@@ -79,9 +80,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }
 
       // Save other settings
-      if (window.electronAPI.setSettings) {
+      if ((window.electronAPI as any).setSettings) {
         const { pat, ...otherSettings } = settings;
-        await window.electronAPI.setSettings(otherSettings);
+        await (window.electronAPI as any).setSettings(otherSettings);
+      }
+
+      // Notify parent component that settings have changed
+      if (onSettingsChange) {
+        onSettingsChange();
       }
 
       onClose();

@@ -8,6 +8,7 @@ import { SetupWizard } from './components/SetupWizard';
 import { FilterSettingsModal } from './components/FilterSettingsModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { useBackgroundRefresh } from './hooks/useBackgroundRefresh';
 import './App.css';
 
 function App() {
@@ -23,6 +24,14 @@ function App() {
   const [showGeneralSettings, setShowGeneralSettings] = useState(false);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+  const [refreshInterval, setRefreshInterval] = useState<number>(5); // Default 5 minutes
+
+  // Background refresh hook
+  useBackgroundRefresh({
+    refreshInterval,
+    onRefresh: () => loadNotifications(),
+    enabled: setupComplete && !!githubService
+  });
 
   useEffect(() => {
     checkSetupStatus();
@@ -30,9 +39,11 @@ function App() {
 
   useEffect(() => {
     if (!showSetupWizard && setupComplete && githubService) {
-      // Load filter settings first, then notifications
-      loadFilterSettings().then(() => {
-        loadNotifications();
+      // Load settings first, then filter settings, then notifications
+      loadSettings().then(() => {
+        loadFilterSettings().then(() => {
+          loadNotifications();
+        });
       });
     }
   }, [showSetupWizard, setupComplete, githubService]);
@@ -57,6 +68,25 @@ function App() {
     } catch (error) {
       console.error('Failed to check setup status:', error);
       setShowSetupWizard(true);
+    }
+  };
+
+  const loadSettings = async () => {
+    try {
+      console.log('⚙️ Loading app settings...');
+      if ((window.electronAPI as any)?.getSettings) {
+        const settings = await (window.electronAPI as any).getSettings();
+        if (settings?.refreshInterval) {
+          setRefreshInterval(settings.refreshInterval);
+          console.log(`✅ Refresh interval loaded: ${settings.refreshInterval} minutes`);
+        } else {
+          console.log('ℹ️ No refresh interval found in settings, using default: 5 minutes');
+        }
+      } else {
+        console.log('❌ getSettings method not available');
+      }
+    } catch (error) {
+      console.error('❌ Failed to load settings:', error);
     }
   };
 
@@ -335,6 +365,11 @@ const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRe
   }
 };
 
+const handleSettingsChange = async () => {
+  // Reload settings when they change to update refresh interval
+  await loadSettings();
+};
+
   // Show setup wizard if needed
   if (showSetupWizard) {
     return (
@@ -362,9 +397,7 @@ const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRe
     <ThemeProvider>
       <div className="app">
         <Header 
-          unreadCount={getFilteredNotifications().reduce((total, group) => 
-            total + group.notifications.filter(n => n.unread).length, 0
-          )}
+          unreadCount={unreadCount}
           onRefresh={handleRefresh}
           onMarkAllAsRead={handleMarkAllAsRead}
           onOpenSettings={handleOpenSettings}
@@ -412,6 +445,7 @@ const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRe
         <SettingsModal
           isOpen={showGeneralSettings}
           onClose={() => setShowGeneralSettings(false)}
+          onSettingsChange={handleSettingsChange}
         />
       </div>
     </ThemeProvider>
