@@ -17,8 +17,19 @@ export function NotificationList({ notifications, onMarkAsRead }: NotificationLi
     );
   }
 
+  const totalNotifications = notifications.reduce((total, group) => total + group.notifications.length, 0);
+  const totalUnread = notifications.reduce((total, group) => 
+    total + group.notifications.filter(n => n.unread).length, 0
+  );
+
   return (
     <div className="notification-list">
+      <div className="list-summary">
+        <span className="summary-text">
+          Showing {totalNotifications} notification{totalNotifications !== 1 ? 's' : ''}
+          {totalUnread > 0 && ` (${totalUnread} unread)`}
+        </span>
+      </div>
       {notifications.map((group) => (
         <div key={group.repository} className="repository-group">
           <div className="repository-header">

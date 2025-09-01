@@ -6,6 +6,7 @@ import { FilterBar } from './components/FilterBar';
 import { Header } from './components/Header';
 import { SetupWizard } from './components/SetupWizard';
 import { FilterSettingsModal } from './components/FilterSettingsModal';
+import { SettingsModal } from './components/SettingsModal';
 import './App.css';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
   const [githubService, setGithubService] = useState<GitHubService | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showFilterSettings, setShowFilterSettings] = useState(false);
+  const [showGeneralSettings, setShowGeneralSettings] = useState(false);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
 
@@ -191,6 +193,37 @@ function App() {
     setFilter(newFilter);
   };
 
+  // Filter notifications based on the selected filter type
+  const getFilteredNotifications = (): NotificationGroup[] => {
+    if (filter === 'all') {
+      return notifications;
+    }
+
+    return notifications.map(group => ({
+      ...group,
+      notifications: group.notifications.filter(notification => {
+        const reason = notification.reason;
+        
+        switch (filter) {
+          case 'mentions':
+            return reason === 'mention' || reason === 'team_mention';
+          case 'reviews':
+            return reason === 'review_requested';
+          case 'assignments':
+            return reason === 'assign';
+          case 'comments':
+            return reason === 'comment' || reason === 'subscribed';
+          case 'security':
+            return reason === 'security_alert';
+          case 'other':
+            return !['mention', 'team_mention', 'review_requested', 'assign', 'comment', 'subscribed', 'security_alert'].includes(reason);
+          default:
+            return true;
+        }
+      })
+    })).filter(group => group.notifications.length > 0);
+  };
+
   const handleMarkAsRead = async (notificationId: string) => {
     if (!githubService) return;
     
@@ -271,6 +304,10 @@ const handleOpenSettings = () => {
   setShowFilterSettings(true);
 };
 
+const handleOpenGeneralSettings = () => {
+  setShowGeneralSettings(true);
+};
+
 const handleQuit = () => {
   if (window.electronAPI && (window.electronAPI as any).quit) {
     (window.electronAPI as any).quit();
@@ -316,13 +353,16 @@ const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRe
 
   return (
     <div className="app">
-<Header 
-  unreadCount={unreadCount}
-  onRefresh={handleRefresh}
-  onMarkAllAsRead={handleMarkAllAsRead}
-  onOpenSettings={handleOpenSettings}
-  onQuit={handleQuit}
-/>
+      <Header 
+        unreadCount={getFilteredNotifications().reduce((total, group) => 
+          total + group.notifications.filter(n => n.unread).length, 0
+        )}
+        onRefresh={handleRefresh}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onOpenSettings={handleOpenSettings}
+        onOpenGeneralSettings={handleOpenGeneralSettings}
+        onQuit={handleQuit}
+      />
       
       <FilterBar 
         currentFilter={filter}
@@ -349,18 +389,22 @@ const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRe
           </div>
         ) : (
           <NotificationList 
-            notifications={notifications}
+            notifications={getFilteredNotifications()}
             onMarkAsRead={handleMarkAsRead}
           />
         )}
       </main>
       <FilterSettingsModal
-  isOpen={showFilterSettings}
-  onClose={() => setShowFilterSettings(false)}
-  onSave={handleSaveFilterSettings}
-  initialSelectedOrgs={selectedOrgs}
-  initialSelectedRepos={selectedRepos}
-/>
+        isOpen={showFilterSettings}
+        onClose={() => setShowFilterSettings(false)}
+        onSave={handleSaveFilterSettings}
+        initialSelectedOrgs={selectedOrgs}
+        initialSelectedRepos={selectedRepos}
+      />
+      <SettingsModal
+        isOpen={showGeneralSettings}
+        onClose={() => setShowGeneralSettings(false)}
+      />
     </div>
   );
 }

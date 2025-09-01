@@ -108,6 +108,20 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   font-family: var(--font-family-mono);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.reason-badge {
+  background: var(--color-primary-lighter);
+  color: var(--color-primary);
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  text-transform: capitalize;
+  border: 1px solid var(--color-primary-light);
 }
 
 /* Responsive adjustments */

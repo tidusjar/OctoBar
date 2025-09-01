@@ -51,7 +51,7 @@ export interface NotificationGroup {
   notifications: AppNotification[];
 }
 
-export type FilterType = 'work' | 'personal' | 'all';
+export type FilterType = 'all' | 'mentions' | 'reviews' | 'assignments' | 'comments' | 'security' | 'other';
 
 export interface NotificationFilters {
   type: FilterType;

@@ -23,6 +23,9 @@ declare global {
       deleteFilterSettings: () => Promise<boolean>;
       // App control
       quit: () => Promise<void>;
+      // Settings management
+      setSettings: (settings: any) => Promise<boolean>;
+      getSettings: () => Promise<any>;
       // Test method
       test: () => Promise<string>;
     };

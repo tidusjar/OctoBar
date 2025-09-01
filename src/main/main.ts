@@ -218,6 +218,15 @@ ipcMain.handle('delete-filter-settings', async () => {
   return await SecureStorage.deleteFilterSettings();
 });
 
+// IPC handlers for general settings management
+ipcMain.handle('set-settings', async (_, settings: any) => {
+  return await SecureStorage.saveSettings(settings);
+});
+
+ipcMain.handle('get-settings', async () => {
+  return await SecureStorage.getSettings();
+});
+
 // IPC handler for app control
 ipcMain.handle('quit', async () => {
   app.quit();

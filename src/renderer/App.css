@@ -13,6 +13,7 @@
 @import './components/NotificationItem.css';
 @import './components/QuickActions.css';
 @import './components/FilterSettingsModal.css';
+@import './components/SettingsModal.css';
 @import './components/SetupWizard.css';
 
 /* App-specific overrides and customizations can go here */

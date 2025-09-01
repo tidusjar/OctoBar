@@ -64,6 +64,16 @@ try {
       return ipcRenderer.invoke('quit');
     },
     
+    // Settings management
+    setSettings: (settings: any) => {
+      console.log('setSettings called with:', settings);
+      return ipcRenderer.invoke('set-settings', settings);
+    },
+    getSettings: () => {
+      console.log('getSettings called');
+      return ipcRenderer.invoke('get-settings');
+    },
+    
     // Open URL in default browser
     openInBrowser: (url: string) => {
       console.log('openInBrowser called with:', url);

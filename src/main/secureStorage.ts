@@ -3,6 +3,7 @@ import * as keytar from 'keytar';
 const SERVICE_NAME = 'OctoBar';
 const ACCOUNT_NAME = 'GitHub_PAT';
 const FILTER_SETTINGS_ACCOUNT = 'Filter_Settings';
+const GENERAL_SETTINGS_ACCOUNT = 'General_Settings';
 
 // Platform-specific storage info for logging
 const getStorageInfo = () => {
@@ -152,6 +153,44 @@ export class SecureStorage {
     } catch (error) {
       console.error(`Failed to delete filter settings from ${getStorageInfo()}:`, error);
       return false;
+    }
+  }
+
+  /**
+   * Save general application settings
+   */
+  static async saveSettings(settings: any): Promise<boolean> {
+    try {
+      const settingsData = {
+        ...settings,
+        savedAt: new Date().toISOString()
+      };
+      await keytar.setPassword(SERVICE_NAME, GENERAL_SETTINGS_ACCOUNT, JSON.stringify(settingsData));
+      console.log(`General settings saved successfully to ${getStorageInfo()}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to save general settings to ${getStorageInfo()}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Retrieve general application settings
+   */
+  static async getSettings(): Promise<any | null> {
+    try {
+      const settings = await keytar.getPassword(SERVICE_NAME, GENERAL_SETTINGS_ACCOUNT);
+      if (settings) {
+        const parsed = JSON.parse(settings);
+        console.log(`General settings retrieved successfully from ${getStorageInfo()}`);
+        return parsed;
+      } else {
+        console.log(`No general settings found in ${getStorageInfo()}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Failed to retrieve general settings from ${getStorageInfo()}:`, error);
+      return null;
     }
   }
 }

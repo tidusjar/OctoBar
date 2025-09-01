@@ -5,10 +5,11 @@ interface HeaderProps {
   onRefresh: () => void;
   onMarkAllAsRead: () => void;
   onOpenSettings: () => void;
+  onOpenGeneralSettings: () => void;
   onQuit: () => void;
 }
 
-export function Header({ unreadCount, onRefresh, onMarkAllAsRead, onOpenSettings, onQuit }: HeaderProps) {
+export function Header({ unreadCount, onRefresh, onMarkAllAsRead, onOpenSettings, onOpenGeneralSettings, onQuit }: HeaderProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   const handleSettingsClick = () => {
@@ -78,7 +79,7 @@ export function Header({ unreadCount, onRefresh, onMarkAllAsRead, onOpenSettings
               </button>
               <button 
                 className="menu-item"
-                onClick={() => handleMenuOptionClick(() => {})}
+                onClick={() => handleMenuOptionClick(onOpenGeneralSettings)}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="3"/>

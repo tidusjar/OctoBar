@@ -107,6 +107,9 @@ export function NotificationItem({ notification, onMarkAsRead }: NotificationIte
         
         <div className="notification-repository">
           {notification.repository}
+          <span className="reason-badge" title={notification.reason}>
+            {notification.reason.replace('_', ' ')}
+          </span>
         </div>
       </div>
       
