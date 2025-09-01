@@ -27,7 +27,7 @@
 
 .organization-header {
   padding: var(--spacing-base) var(--spacing-xl) var(--spacing-md);
-  background: rgba(248, 248, 248, 0.8);
+  background: var(--color-background-tertiary);
 }
 
 .organization-name {
@@ -69,7 +69,7 @@
 .notification-count {
   font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-background-tertiary);
   padding: 2px var(--spacing-md);
   border-radius: 10px;
 }

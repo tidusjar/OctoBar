@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface Settings {
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>({
     pat: '',
     refreshInterval: 5,
@@ -35,7 +37,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     if (isOpen) {
       loadSettings();
     }
-  }, [isOpen]);
+  }, [isOpen, theme]);
 
   const loadSettings = async () => {
     try {
@@ -50,6 +52,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       if (storedSettings) {
         setSettings(prev => ({ ...prev, ...storedSettings }));
       }
+      
+      // Update local settings with current theme from context
+      setSettings(prev => ({ ...prev, theme }));
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -122,6 +127,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const handleSettingChange = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    
+    // Handle theme change immediately
+    if (key === 'theme') {
+      setTheme(value as 'light' | 'dark' | 'system');
+    }
   };
 
   // Handle ESC key to close modal

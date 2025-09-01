@@ -53,12 +53,12 @@
 }
 
 .action-button:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-background-tertiary);
   color: var(--color-text-primary);
 }
 
 .action-button:active {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--color-background-secondary);
 }
 
 /* Settings Dropdown */
@@ -71,7 +71,7 @@
   top: 100%;
   right: 0;
   margin-top: var(--spacing-md);
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--color-background-modal);
   backdrop-filter: blur(var(--blur-lg));
   border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-xl);
@@ -102,7 +102,7 @@
   right: 16px;
   width: 16px;
   height: 16px;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--color-background-modal);
   border: 1px solid var(--color-border-primary);
   border-bottom: none;
   border-right: none;
@@ -155,7 +155,7 @@
 }
 
 .menu-item svg {
-  color: #8e8e93;
+  color: var(--color-text-tertiary);
   transition: all var(--transition-fast);
   flex-shrink: 0;
 }

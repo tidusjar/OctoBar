@@ -10,7 +10,7 @@
 }
 
 .notification-item:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--color-background-tertiary);
 }
 
 .notification-item.unread {
@@ -18,7 +18,7 @@
 }
 
 .notification-item.unread:hover {
-  background: rgba(0, 122, 255, 0.04);
+  background: var(--color-primary-light);
 }
 
 .notification-content {

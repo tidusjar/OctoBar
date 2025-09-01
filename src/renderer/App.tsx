@@ -7,6 +7,7 @@ import { Header } from './components/Header';
 import { SetupWizard } from './components/SetupWizard';
 import { FilterSettingsModal } from './components/FilterSettingsModal';
 import { SettingsModal } from './components/SettingsModal';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './App.css';
 
 function App() {
@@ -336,76 +337,84 @@ const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRe
 
   // Show setup wizard if needed
   if (showSetupWizard) {
-    return <SetupWizard onComplete={handleSetupComplete} />;
+    return (
+      <ThemeProvider>
+        <SetupWizard onComplete={handleSetupComplete} />
+      </ThemeProvider>
+    );
   }
 
   // Show loading state while checking setup
   if (!setupComplete) {
     return (
-      <div className="app">
-        <div className="loading">
-          <div className="spinner"></div>
-          <span>Checking setup...</span>
+      <ThemeProvider>
+        <div className="app">
+          <div className="loading">
+            <div className="spinner"></div>
+            <span>Checking setup...</span>
+          </div>
         </div>
-      </div>
+      </ThemeProvider>
     );
   }
 
   return (
-    <div className="app">
-      <Header 
-        unreadCount={getFilteredNotifications().reduce((total, group) => 
-          total + group.notifications.filter(n => n.unread).length, 0
-        )}
-        onRefresh={handleRefresh}
-        onMarkAllAsRead={handleMarkAllAsRead}
-        onOpenSettings={handleOpenSettings}
-        onOpenGeneralSettings={handleOpenGeneralSettings}
-        onQuit={handleQuit}
-      />
-      
-      <FilterBar 
-        currentFilter={filter}
-        onFilterChange={handleFilterChange}
-      />
-      
-      <main className="main-content">
-        {loading ? (
-          <div className="loading">
-            <div className="spinner"></div>
-            <span>Loading notifications...</span>
-          </div>
-        ) : error ? (
-          <div className="error-display">
-            <div className="error-icon">⚠️</div>
-            <h3>Error Loading Notifications</h3>
-            <p>{error}</p>
-            <button 
-              className="btn btn-primary" 
-              onClick={() => loadNotifications()}
-            >
-              Try Again
-            </button>
-          </div>
-        ) : (
-          <NotificationList 
-            notifications={getFilteredNotifications()}
-            onMarkAsRead={handleMarkAsRead}
-          />
-        )}
-      </main>
-      <FilterSettingsModal
-        isOpen={showFilterSettings}
-        onClose={() => setShowFilterSettings(false)}
-        onSave={handleSaveFilterSettings}
-        initialSelectedOrgs={selectedOrgs}
-        initialSelectedRepos={selectedRepos}
-      />
-      <SettingsModal
-        isOpen={showGeneralSettings}
-        onClose={() => setShowGeneralSettings(false)}
-      />
-    </div>
+    <ThemeProvider>
+      <div className="app">
+        <Header 
+          unreadCount={getFilteredNotifications().reduce((total, group) => 
+            total + group.notifications.filter(n => n.unread).length, 0
+          )}
+          onRefresh={handleRefresh}
+          onMarkAllAsRead={handleMarkAllAsRead}
+          onOpenSettings={handleOpenSettings}
+          onOpenGeneralSettings={handleOpenGeneralSettings}
+          onQuit={handleQuit}
+        />
+        
+        <FilterBar 
+          currentFilter={filter}
+          onFilterChange={handleFilterChange}
+        />
+        
+        <main className="main-content">
+          {loading ? (
+            <div className="loading">
+              <div className="spinner"></div>
+              <span>Loading notifications...</span>
+            </div>
+          ) : error ? (
+            <div className="error-display">
+              <div className="error-icon">⚠️</div>
+              <h3>Error Loading Notifications</h3>
+              <p>{error}</p>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => loadNotifications()}
+              >
+                Try Again
+              </button>
+            </div>
+          ) : (
+            <NotificationList 
+              notifications={getFilteredNotifications()}
+              onMarkAsRead={handleMarkAsRead}
+            />
+          )}
+        </main>
+        <FilterSettingsModal
+          isOpen={showFilterSettings}
+          onClose={() => setShowFilterSettings(false)}
+          onSave={handleSaveFilterSettings}
+          initialSelectedOrgs={selectedOrgs}
+          initialSelectedRepos={selectedRepos}
+        />
+        <SettingsModal
+          isOpen={showGeneralSettings}
+          onClose={() => setShowGeneralSettings(false)}
+        />
+      </div>
+    </ThemeProvider>
   );
 }
 

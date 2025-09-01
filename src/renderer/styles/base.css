@@ -1,7 +1,7 @@
 /* Base CSS - Design System Variables and Global Styles */
 
 :root {
-  /* Color Palette */
+  /* Color Palette - Light Theme */
   --color-primary: #007aff;
   --color-primary-hover: #0056b3;
   --color-primary-light: rgba(0, 122, 255, 0.1);
@@ -90,6 +90,37 @@
   --blur-sm: 8px;
   --blur-md: 10px;
   --blur-lg: 20px;
+}
+
+/* Dark Theme Variables */
+[data-theme="dark"] {
+  /* Color Palette - Dark Theme */
+  --color-primary: #0a84ff;
+  --color-primary-hover: #409cff;
+  --color-primary-light: rgba(10, 132, 255, 0.15);
+  --color-primary-lighter: rgba(10, 132, 255, 0.08);
+  
+  --color-success: #30d158;
+  --color-danger: #ff453a;
+  --color-warning: #ff9f0a;
+  
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1a6;
+  --color-text-tertiary: #8e8e93;
+  --color-text-muted: #6d6d70;
+  
+  --color-background-primary: rgba(28, 28, 30, 0.95);
+  --color-background-secondary: rgba(44, 44, 46, 0.8);
+  --color-background-tertiary: rgba(58, 58, 60, 0.6);
+  --color-background-modal: rgba(28, 28, 30, 0.95);
+  
+  --color-border-primary: rgba(255, 255, 255, 0.1);
+  --color-border-secondary: rgba(255, 255, 255, 0.05);
+  --color-border-light: rgba(0, 0, 0, 0.2);
+  
+  --color-shadow-primary: rgba(0, 0, 0, 0.3);
+  --color-shadow-secondary: rgba(0, 0, 0, 0.2);
+  --color-shadow-tertiary: rgba(0, 0, 0, 0.1);
 }
 
 /* Global Reset and Base Styles */
@@ -187,12 +218,13 @@ body {
 }
 
 .btn-secondary {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-background-tertiary);
   color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
 }
 
 .btn-secondary:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--color-background-secondary);
 }
 
 .btn-small {
@@ -215,12 +247,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--color-border-primary);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--color-text-tertiary);
 }
 
 /* Responsive Breakpoints */
