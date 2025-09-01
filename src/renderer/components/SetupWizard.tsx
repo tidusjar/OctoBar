@@ -77,6 +77,16 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         }
         break;
       case 'filter':
+        // Save filter settings before proceeding to completion
+        console.log('Saving filter settings...');
+        try {
+          if (window.electronAPI && (window.electronAPI as any).saveFilterSettings) {
+            const success = await (window.electronAPI as any).saveFilterSettings(selectedOrgs, selectedRepos);
+            console.log('Filter settings save result:', success);
+          }
+        } catch (error) {
+          console.error('Error saving filter settings:', error);
+        }
         setCurrentStep('completion');
         break;
       case 'completion':

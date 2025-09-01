@@ -40,6 +40,30 @@ try {
       return ipcRenderer.invoke('has-pat');
     },
     
+    // Filter settings management
+    saveFilterSettings: (selectedOrgs: string[], selectedRepos: string[]) => {
+      console.log('saveFilterSettings called with:', selectedOrgs.length, 'orgs and', selectedRepos.length, 'repos');
+      return ipcRenderer.invoke('save-filter-settings', selectedOrgs, selectedRepos);
+    },
+    getFilterSettings: () => {
+      console.log('getFilterSettings called');
+      return ipcRenderer.invoke('get-filter-settings');
+    },
+    hasFilterSettings: () => {
+      console.log('hasFilterSettings called');
+      return ipcRenderer.invoke('has-filter-settings');
+    },
+    deleteFilterSettings: () => {
+      console.log('deleteFilterSettings called');
+      return ipcRenderer.invoke('delete-filter-settings');
+    },
+    
+    // App control
+    quit: () => {
+      console.log('quit called');
+      return ipcRenderer.invoke('quit');
+    },
+    
     // Open URL in default browser
     openInBrowser: (url: string) => {
       console.log('openInBrowser called with:', url);

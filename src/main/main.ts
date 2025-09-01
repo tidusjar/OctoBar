@@ -201,6 +201,28 @@ ipcMain.handle('open-in-browser', async (_, url: string) => {
   await shell.openExternal(url);
 });
 
+// IPC handlers for filter settings management
+ipcMain.handle('save-filter-settings', async (_, selectedOrgs: string[], selectedRepos: string[]) => {
+  return await SecureStorage.saveFilterSettings(selectedOrgs, selectedRepos);
+});
+
+ipcMain.handle('get-filter-settings', async () => {
+  return await SecureStorage.getFilterSettings();
+});
+
+ipcMain.handle('has-filter-settings', async () => {
+  return await SecureStorage.hasFilterSettings();
+});
+
+ipcMain.handle('delete-filter-settings', async () => {
+  return await SecureStorage.deleteFilterSettings();
+});
+
+// IPC handler for app control
+ipcMain.handle('quit', async () => {
+  app.quit();
+});
+
 // App lifecycle events
 app.whenReady().then(() => {
   createTray();

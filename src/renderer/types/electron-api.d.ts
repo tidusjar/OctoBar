@@ -16,6 +16,13 @@ declare global {
       getPAT: () => Promise<string | null>;
       deletePAT: () => Promise<boolean>;
       hasPAT: () => Promise<boolean>;
+      // Filter settings management
+      saveFilterSettings: (selectedOrgs: string[], selectedRepos: string[]) => Promise<boolean>;
+      getFilterSettings: () => Promise<{ organizations: string[], repositories: string[] } | null>;
+      hasFilterSettings: () => Promise<boolean>;
+      deleteFilterSettings: () => Promise<boolean>;
+      // App control
+      quit: () => Promise<void>;
       // Test method
       test: () => Promise<string>;
     };

@@ -5,6 +5,7 @@ import { NotificationList } from './components/NotificationList';
 import { FilterBar } from './components/FilterBar';
 import { Header } from './components/Header';
 import { SetupWizard } from './components/SetupWizard';
+import { FilterSettingsModal } from './components/FilterSettingsModal';
 import './App.css';
 
 function App() {
@@ -16,6 +17,9 @@ function App() {
   const [setupComplete, setSetupComplete] = useState(false);
   const [githubService, setGithubService] = useState<GitHubService | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showFilterSettings, setShowFilterSettings] = useState(false);
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
+  const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
 
   useEffect(() => {
     checkSetupStatus();
@@ -23,7 +27,10 @@ function App() {
 
   useEffect(() => {
     if (!showSetupWizard && setupComplete && githubService) {
-      loadNotifications();
+      // Load filter settings first, then notifications
+      loadFilterSettings().then(() => {
+        loadNotifications();
+      });
     }
   }, [showSetupWizard, setupComplete, githubService]);
 
@@ -69,7 +76,7 @@ function App() {
     }
   };
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (customFilterOrgs?: string[], customFilterRepos?: string[]) => {
     if (!githubService) {
       console.error('GitHub service not initialized');
       return;
@@ -89,8 +96,18 @@ function App() {
         since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // Get notifications from last 7 days
       };
       
-      console.log('📡 API parameters:', params);
-      const rawNotifications = await githubService.getNotifications(params);
+      // Use custom filter parameters if provided, otherwise use current state
+      const filterOrgs = customFilterOrgs !== undefined ? customFilterOrgs : selectedOrgs;
+      const filterRepos = customFilterRepos !== undefined ? customFilterRepos : selectedRepos;
+      
+      // Add filter parameters to the API call
+      const apiParams = {
+        ...params,
+        filterOrgs: filterOrgs,
+        filterRepos: filterRepos
+      };
+      
+      const rawNotifications = await githubService.getNotifications(apiParams);
       console.log(`📨 Received ${rawNotifications.length} notifications from GitHub`);
 
       // Transform GitHub notifications to our format
@@ -224,6 +241,62 @@ function App() {
     loadNotifications();
   };
 
+  const loadFilterSettings = async () => {
+    try {
+      console.log('�� Attempting to load filter settings...');
+      if (window.electronAPI && (window.electronAPI as any).getFilterSettings) {
+        console.log('✅ getFilterSettings method available');
+        const filterSettings = await (window.electronAPI as any).getFilterSettings();
+        console.log('📋 Raw filter settings from storage:', filterSettings);
+        if (filterSettings) {
+          setSelectedOrgs(filterSettings.organizations);
+          setSelectedRepos(filterSettings.repositories);
+          console.log('✅ Filter settings loaded successfully:', {
+            organizations: filterSettings.organizations,
+            repositories: filterSettings.repositories
+          });
+        } else {
+          console.log('ℹ️ No filter settings found in storage');
+        }
+      } else {
+        console.log('❌ getFilterSettings method not available');
+      }
+    } catch (error) {
+      console.error('❌ Failed to load filter settings:', error);
+    }
+  };
+
+  
+const handleOpenSettings = () => {
+  setShowFilterSettings(true);
+};
+
+const handleQuit = () => {
+  if (window.electronAPI && (window.electronAPI as any).quit) {
+    (window.electronAPI as any).quit();
+  }
+};
+
+const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRepos: string[]) => {
+  try {
+    if (window.electronAPI && (window.electronAPI as any).saveFilterSettings) {
+      const success = await (window.electronAPI as any).saveFilterSettings(newSelectedOrgs, newSelectedRepos);
+      if (success) {
+        setSelectedOrgs(newSelectedOrgs);
+        setSelectedRepos(newSelectedRepos);
+        console.log('Filter settings saved successfully');
+        
+        // Refresh notifications with the new filters immediately
+        await loadNotifications(newSelectedOrgs, newSelectedRepos);
+      } else {
+        console.error('Failed to save filter settings');
+      }
+    }
+  } catch (error) {
+    console.error('Error saving filter settings:', error);
+  }
+};
+
   // Show setup wizard if needed
   if (showSetupWizard) {
     return <SetupWizard onComplete={handleSetupComplete} />;
@@ -243,11 +316,13 @@ function App() {
 
   return (
     <div className="app">
-      <Header 
-        unreadCount={unreadCount}
-        onRefresh={handleRefresh}
-        onMarkAllAsRead={handleMarkAllAsRead}
-      />
+<Header 
+  unreadCount={unreadCount}
+  onRefresh={handleRefresh}
+  onMarkAllAsRead={handleMarkAllAsRead}
+  onOpenSettings={handleOpenSettings}
+  onQuit={handleQuit}
+/>
       
       <FilterBar 
         currentFilter={filter}
@@ -267,7 +342,7 @@ function App() {
             <p>{error}</p>
             <button 
               className="btn btn-primary" 
-              onClick={loadNotifications}
+              onClick={() => loadNotifications()}
             >
               Try Again
             </button>
@@ -279,6 +354,13 @@ function App() {
           />
         )}
       </main>
+      <FilterSettingsModal
+  isOpen={showFilterSettings}
+  onClose={() => setShowFilterSettings(false)}
+  onSave={handleSaveFilterSettings}
+  initialSelectedOrgs={selectedOrgs}
+  initialSelectedRepos={selectedRepos}
+/>
     </div>
   );
 }

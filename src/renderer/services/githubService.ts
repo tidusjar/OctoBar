@@ -218,6 +218,9 @@ export class GitHubService {
     before?: string;
     per_page?: number;
     page?: number;
+    // Custom filter parameters
+    filterOrgs?: string[];
+    filterRepos?: string[];
   } = {}): Promise<any[]> {
     if (!this.token) {
       throw new Error('No token set');
@@ -248,6 +251,14 @@ export class GitHubService {
 
     const data = await response.json();
     console.log('📨 Response data length:', data.length);
+
+    // Apply custom filtering if filter parameters are provided
+    if (params.filterOrgs || params.filterRepos) {
+      const filteredData = this.filterNotifications(data, params.filterOrgs || [], params.filterRepos || []);
+      console.log(`🔍 Filtered notifications: ${data.length} → ${filteredData.length}`);
+      return filteredData;
+    }
+
     return data;
   }
 
@@ -289,5 +300,45 @@ export class GitHubService {
     if (!response.ok) {
       throw new Error(`Failed to mark all notifications as read: ${response.status} ${response.statusText}`);
     }
+  }
+
+  /**
+   * Filter notifications based on organization and repository selections
+   */
+  private filterNotifications(notifications: any[], filterOrgs: string[], filterRepos: string[]): any[] {
+    // If no filters are applied, return all notifications
+    if (filterOrgs.length === 0 && filterRepos.length === 0) {
+      return notifications;
+    }
+
+    console.log('🔍 Filtering notifications with:', { filterOrgs, filterRepos });
+
+    return notifications.filter(notification => {
+      const repo = notification.repository;
+      if (!repo) {
+        return false;
+      }
+
+      const repoId = repo.id.toString();
+      const ownerId = repo.owner?.id?.toString();
+      const ownerLogin = repo.owner?.login;
+
+      // Check if the repository is directly selected
+      if (filterRepos.includes(repoId)) {
+        return true;
+      }
+
+      // Check if the repository's owner (organization or user) is selected by ID
+      if (ownerId && filterOrgs.includes(ownerId)) {
+        return true;
+      }
+
+      // Check if the repository's owner is selected by login (fallback)
+      if (ownerLogin && filterOrgs.includes(ownerLogin)) {
+        return true;
+      }
+
+      return false;
+    });
   }
 }

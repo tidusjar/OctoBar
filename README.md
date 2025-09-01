@@ -167,7 +167,6 @@ This will create platform-specific installers:
 - Add mute thread API integration
 - Add star thread API integration
 - Add notification refresh polling
-- Add settings window for account management
 - Implement macOS Focus mode detection
 - Add notification sound alerts
 - Add keyboard shortcuts
