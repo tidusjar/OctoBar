@@ -198,7 +198,7 @@ Semantic-release analyzes commit messages to determine version increments:
 
 ### 📋 Configuration Files
 - `.github/workflows/release.yml` - Main workflow using semantic-release
-- `.releaserc.json` - Semantic-release configuration
+- `package.json` - Semantic-release configuration in the "release" section
 
 ### 💡 How to Use Conventional Commits
 
@@ -234,13 +234,15 @@ git commit -m "chore: update dependencies"
 
 ### 🚀 Creating Your First Stable Release
 
-When you're ready for a stable v1.0.0 release, simply update the `.releaserc.json`:
+When you're ready for a stable v1.0.0 release, simply update the `package.json` "release" section:
 
 ```json
 {
-  "branches": [
-    "main"  // Remove the prerelease configuration
-  ]
+  "release": {
+    "branches": [
+      "main"  // Remove the prerelease configuration
+    ]
+  }
 }
 ```
 
