@@ -47,6 +47,7 @@
   "build": {
     "appId": "com.octobar.app",
     "productName": "OctoBar",
+    "publish": null,
     "directories": {
       "output": "release"
     },
