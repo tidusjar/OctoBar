@@ -325,6 +325,14 @@ ipcMain.handle('quit', async () => {
 
 // App lifecycle events
 app.whenReady().then(() => {
+  // Set the app name to ensure notifications show the correct name
+  app.setName('OctoBar');
+  
+  // Set AppUserModelID for Windows to fix notification app name
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('OctoBar');
+  }
+  
   createTray();
   
   // Prevent app from showing in dock on macOS

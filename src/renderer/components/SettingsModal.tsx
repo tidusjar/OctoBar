@@ -207,7 +207,25 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange, onDebugRefres
   };
 
   const handleDebugTestNewNotifications = async () => {
-    await notificationService.notifyNewNotifications(3, 'octobar/debug-repo');
+    // Create mock notification data for testing
+    const mockNotifications = [
+      {
+        repository: { full_name: 'octobar/debug-repo' },
+        subject: { title: 'Test Issue: Debug notification system', type: 'Issue' },
+        reason: 'mention'
+      },
+      {
+        repository: { full_name: 'octobar/debug-repo' },
+        subject: { title: 'Test PR: Add new notification features', type: 'PullRequest' },
+        reason: 'review_requested'
+      },
+      {
+        repository: { full_name: 'octobar/debug-repo' },
+        subject: { title: 'Test Commit: Fix notification display issues', type: 'Commit' },
+        reason: 'push'
+      }
+    ];
+    await notificationService.notifyNewNotifications(3, 'octobar/debug-repo', mockNotifications);
   };
 
   const handleDebugRefresh = () => {
@@ -263,7 +281,19 @@ export function SettingsModal({ isOpen, onClose, onSettingsChange, onDebugRefres
 
     // Wait a bit more, then test new notifications
     setTimeout(async () => {
-      await notificationService.notifyNewNotifications(2, 'debug/test-repo');
+      const mockNotifications = [
+        {
+          repository: { full_name: 'debug/test-repo' },
+          subject: { title: 'Debug Test Issue', type: 'Issue' },
+          reason: 'assign'
+        },
+        {
+          repository: { full_name: 'debug/test-repo' },
+          subject: { title: 'Debug Test PR', type: 'PullRequest' },
+          reason: 'comment'
+        }
+      ];
+      await notificationService.notifyNewNotifications(2, 'debug/test-repo', mockNotifications);
     }, 2000);
   };
 

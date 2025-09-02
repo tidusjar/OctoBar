@@ -179,12 +179,19 @@ function App() {
       console.log(`✅ Loaded ${count} unread notifications, grouped into ${groupedNotifications.length} repositories`);
 
       // Check for new notifications and trigger alerts
+      // Only show notifications if we had a previous count and the count increased
       if (previousNotificationCount > 0 && count > previousNotificationCount) {
         const newNotifications = count - previousNotificationCount;
         console.log(`🔔 ${newNotifications} new notifications detected`);
         
-        // Show notification for new notifications
-        await notificationService.notifyNewNotifications(newNotifications);
+        // Get the newest notifications (assuming they're at the beginning of the array)
+        const newestNotifications = rawNotifications.slice(0, newNotifications);
+        
+        // Show notification for new notifications with details
+        await notificationService.notifyNewNotifications(newNotifications, undefined, newestNotifications);
+      } else if (previousNotificationCount === 0 && count > 0) {
+        // First time loading notifications - don't show notification for existing ones
+        console.log(`🔔 First load: ${count} existing notifications found (not showing notification)`);
       }
       
       // Update previous count for next comparison

@@ -206,24 +206,51 @@ class NotificationService {
   /**
    * Show notification for new GitHub notifications
    */
-  async notifyNewNotifications(count: number, repository?: string) {
+  async notifyNewNotifications(count: number, repository?: string, newNotifications?: any[]) {
     if (count === 0) return;
 
     const title = count === 1 
       ? 'New GitHub notification' 
       : `${count} new GitHub notifications`;
 
-    const body = repository 
-      ? `New notification from ${repository}`
-      : count === 1
+    let body = '';
+    
+    if (newNotifications && newNotifications.length > 0) {
+      // Show details of the first few new notifications
+      const maxNotifications = Math.min(count, 3);
+      const notificationDetails = newNotifications.slice(0, maxNotifications).map(notif => {
+        const repoName = notif.repository?.full_name || 'Unknown repository';
+        const subjectTitle = notif.subject?.title || 'Unknown notification';
+        const type = notif.subject?.type || 'Unknown';
+        const reason = notif.reason || 'unknown';
+        
+        // Truncate long titles
+        const truncatedTitle = subjectTitle.length > 50 
+          ? subjectTitle.substring(0, 47) + '...' 
+          : subjectTitle;
+        
+        return `• ${type} in ${repoName}: ${truncatedTitle}`;
+      }).join('\n');
+      
+      if (count > maxNotifications) {
+        body = `${notificationDetails}\n... and ${count - maxNotifications} more`;
+      } else {
+        body = notificationDetails;
+      }
+    } else if (repository) {
+      body = `New notification from ${repository}`;
+    } else {
+      body = count === 1
         ? 'You have a new notification'
         : `You have ${count} new notifications`;
+    }
 
     await this.notify({
       title,
       body,
       tag: 'github-notifications',
-      data: { count, repository }
+      // Only pass simple data to avoid clone errors
+      data: { count: count.toString(), repository: repository || '' }
     });
   }
 
