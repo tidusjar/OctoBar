@@ -195,6 +195,8 @@ class NotificationService {
   async notify(data: NotificationData) {
     console.log('🔔 Regular notify() called with:', data);
     console.log('🔔 Current settings in notify():', this.settings);
+    console.log('🔔 Desktop notifications enabled:', this.settings.enableDesktopNotifications);
+    console.log('🔔 Sound notifications enabled:', this.settings.enableSound);
     
     // Play sound notification
     await this.playNotificationSound();

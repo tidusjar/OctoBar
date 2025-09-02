@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NotificationGroup, FilterType } from './types/notifications';
 import { GitHubService } from './services/githubService';
 import { NotificationList } from './components/NotificationList';
@@ -31,11 +31,14 @@ function App() {
     enableDesktopNotifications: true
   });
   const [previousNotificationCount, setPreviousNotificationCount] = useState<number>(0);
+  // Track previously seen notification IDs to detect true "new" items even when count stays the same
+  const previousIdsRef = useRef<Set<string>>(new Set());
+  const lastSeenUpdatedAtRef = useRef<string | null>(null);
 
   // Background refresh hook
   useBackgroundRefresh({
     refreshInterval,
-    onRefresh: () => loadNotifications(selectedOrgs, selectedRepos),
+    onRefresh: () => loadNotifications(),
     enabled: setupComplete && !!githubService
   });
 
@@ -188,23 +191,61 @@ function App() {
       console.log(`✅ Loaded ${count} unread notifications, grouped into ${groupedNotifications.length} repositories`);
 
       // Check for new notifications and trigger alerts
-      // Only show notifications if we had a previous count and the count increased
-      if (previousNotificationCount > 0 && count > previousNotificationCount) {
-        const newNotifications = count - previousNotificationCount;
-        console.log(`🔔 ${newNotifications} new notifications detected`);
-        
-        // Get the newest notifications (assuming they're at the beginning of the array)
-        const newestNotifications = rawNotifications.slice(0, newNotifications);
-        
-        // Show notification for new notifications with details
-        await notificationService.notifyNewNotifications(newNotifications, undefined, newestNotifications);
-      } else if (previousNotificationCount === 0 && count > 0) {
-        // First time loading notifications - don't show notification for existing ones
-        console.log(`🔔 First load: ${count} existing notifications found (not showing notification)`);
+      // 1) Prefer ID-diff based detection so we catch new items even when the total count stays constant
+      // 2) Keep the existing count-based check as a fallback
+      console.log(`🔍 Notification count comparison: previous=${previousNotificationCount}, current=${count}`);
+
+      const currentIds = new Set<string>(rawNotifications.map(n => String(n.id)));
+      let newIds: string[] = [];
+      if (previousIdsRef.current.size > 0) {
+        for (const id of currentIds) {
+          if (!previousIdsRef.current.has(id)) {
+            newIds.push(id);
+          }
+        }
+      }
+
+      if (newIds.length > 0) {
+        console.log(`🔔 Detected ${newIds.length} brand new notifications by ID`);
+        const newestNotifications = rawNotifications.filter(n => newIds.includes(String(n.id)));
+        await notificationService.notifyNewNotifications(newIds.length, undefined, newestNotifications);
+      } else {
+        // Detect updates to existing threads (same ID but newer updated_at)
+        let updatedItems: any[] = [];
+        if (lastSeenUpdatedAtRef.current) {
+          const lastSeenTs = new Date(lastSeenUpdatedAtRef.current).getTime();
+          updatedItems = rawNotifications.filter(n => {
+            const ts = new Date(n.updated_at as string).getTime();
+            return ts > lastSeenTs;
+          });
+        }
+
+        if (updatedItems.length > 0) {
+          console.log(`🔔 Detected ${updatedItems.length} updated notifications by timestamp`);
+          await notificationService.notifyNewNotifications(updatedItems.length, undefined, updatedItems);
+        } else if (previousNotificationCount > 0 && count > previousNotificationCount) {
+          const newNotifications = count - previousNotificationCount;
+          console.log(`🔔 ${newNotifications} new notifications detected by count`);
+          const newestNotifications = rawNotifications.slice(0, newNotifications);
+          await notificationService.notifyNewNotifications(newNotifications, undefined, newestNotifications);
+        } else if (previousNotificationCount === 0 && count > 0) {
+          // First time loading notifications - don't show notification for existing ones
+          console.log(`🔔 First load: ${count} existing notifications found (not showing notification)`);
+        } else if (previousNotificationCount > 0 && count <= previousNotificationCount) {
+          console.log(`🔔 No new notifications: count stayed the same or decreased (${previousNotificationCount} → ${count})`);
+        }
       }
       
       // Update previous count for next comparison
       setPreviousNotificationCount(count);
+
+      // Update seen IDs and latest updatedAt for next diff
+      previousIdsRef.current = currentIds;
+      const latestUpdatedAt = rawNotifications
+        .map(n => n.updated_at as string)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || null;
+      lastSeenUpdatedAtRef.current = latestUpdatedAt;
     } catch (error) {
       console.error('Failed to load notifications:', error);
       if (error instanceof Error) {
