@@ -308,37 +308,60 @@ export class GitHubService {
   private filterNotifications(notifications: any[], filterOrgs: string[], filterRepos: string[]): any[] {
     // If no filters are applied, return all notifications
     if (filterOrgs.length === 0 && filterRepos.length === 0) {
+      console.log('🔍 No filters applied, returning all notifications');
       return notifications;
     }
 
-    console.log('🔍 Filtering notifications with:', { filterOrgs, filterRepos });
+    console.log('🔍 Filtering notifications with:', { 
+      filterOrgs, 
+      filterRepos, 
+      totalNotifications: notifications.length 
+    });
 
-    return notifications.filter(notification => {
+    const filtered = notifications.filter(notification => {
       const repo = notification.repository;
       if (!repo) {
+        console.log('🔍 Notification has no repository, excluding:', notification.id);
         return false;
       }
 
       const repoId = repo.id.toString();
       const ownerId = repo.owner?.id?.toString();
       const ownerLogin = repo.owner?.login;
+      const repoName = repo.full_name;
+
+      console.log(`🔍 Checking notification ${notification.id} from repo ${repoName}:`, {
+        repoId,
+        ownerId,
+        ownerLogin,
+        isRepoSelected: filterRepos.includes(repoId),
+        isOwnerSelected: ownerId && filterOrgs.includes(ownerId),
+        isOwnerLoginSelected: ownerLogin && filterOrgs.includes(ownerLogin)
+      });
 
       // Check if the repository is directly selected
       if (filterRepos.includes(repoId)) {
+        console.log(`✅ Repository ${repoName} (ID: ${repoId}) is directly selected`);
         return true;
       }
 
       // Check if the repository's owner (organization or user) is selected by ID
       if (ownerId && filterOrgs.includes(ownerId)) {
+        console.log(`✅ Repository ${repoName} owner (ID: ${ownerId}) is selected`);
         return true;
       }
 
       // Check if the repository's owner is selected by login (fallback)
       if (ownerLogin && filterOrgs.includes(ownerLogin)) {
+        console.log(`✅ Repository ${repoName} owner (login: ${ownerLogin}) is selected`);
         return true;
       }
 
+      console.log(`❌ Repository ${repoName} does not match any filters`);
       return false;
     });
+
+    console.log(`🔍 Filtering complete: ${notifications.length} → ${filtered.length} notifications`);
+    return filtered;
   }
 }

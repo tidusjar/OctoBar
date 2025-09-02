@@ -185,6 +185,13 @@ function createPopupWindow() {
     }
   });
 
+  // Also add F12 as an alternative shortcut
+  popupWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12') {
+      popupWindow?.webContents.openDevTools();
+    }
+  });
+
   // Hide window when it loses focus
   popupWindow.on('blur', () => {
     popupWindow?.hide();

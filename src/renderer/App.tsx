@@ -35,7 +35,7 @@ function App() {
   // Background refresh hook
   useBackgroundRefresh({
     refreshInterval,
-    onRefresh: () => loadNotifications(),
+    onRefresh: () => loadNotifications(selectedOrgs, selectedRepos),
     enabled: setupComplete && !!githubService
   });
 
@@ -52,8 +52,8 @@ function App() {
     if (!showSetupWizard && setupComplete && githubService) {
       // Load settings first, then filter settings, then notifications
       loadSettings().then(() => {
-        loadFilterSettings().then(() => {
-          loadNotifications();
+        loadFilterSettings().then((filterSettings) => {
+          loadNotifications(filterSettings.organizations, filterSettings.repositories);
         });
       });
     }
@@ -158,6 +158,15 @@ function App() {
       // Use custom filter parameters if provided, otherwise use current state
       const filterOrgs = customFilterOrgs !== undefined ? customFilterOrgs : selectedOrgs;
       const filterRepos = customFilterRepos !== undefined ? customFilterRepos : selectedRepos;
+      
+      console.log('🔍 Filter parameters for API call:', {
+        customFilterOrgs,
+        customFilterRepos,
+        selectedOrgs,
+        selectedRepos,
+        finalFilterOrgs: filterOrgs,
+        finalFilterRepos: filterRepos
+      });
       
       // Add filter parameters to the API call
       const apiParams = {
@@ -347,10 +356,10 @@ function App() {
   };
 
   const handleRefresh = () => {
-    loadNotifications();
+    loadNotifications(selectedOrgs, selectedRepos);
   };
 
-  const loadFilterSettings = async () => {
+  const loadFilterSettings = async (): Promise<{ organizations: string[], repositories: string[] }> => {
     try {
       console.log('�� Attempting to load filter settings...');
       if (window.electronAPI && (window.electronAPI as any).getFilterSettings) {
@@ -364,14 +373,21 @@ function App() {
             organizations: filterSettings.organizations,
             repositories: filterSettings.repositories
           });
+          return {
+            organizations: filterSettings.organizations,
+            repositories: filterSettings.repositories
+          };
         } else {
           console.log('ℹ️ No filter settings found in storage');
+          return { organizations: [], repositories: [] };
         }
       } else {
         console.log('❌ getFilterSettings method not available');
+        return { organizations: [], repositories: [] };
       }
     } catch (error) {
       console.error('❌ Failed to load filter settings:', error);
+      return { organizations: [], repositories: [] };
     }
   };
 
@@ -392,21 +408,27 @@ const handleQuit = () => {
 
 const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRepos: string[]) => {
   try {
+    console.log('💾 Saving filter settings:', {
+      organizations: newSelectedOrgs,
+      repositories: newSelectedRepos
+    });
+    
     if (window.electronAPI && (window.electronAPI as any).saveFilterSettings) {
       const success = await (window.electronAPI as any).saveFilterSettings(newSelectedOrgs, newSelectedRepos);
       if (success) {
         setSelectedOrgs(newSelectedOrgs);
         setSelectedRepos(newSelectedRepos);
-        console.log('Filter settings saved successfully');
+        console.log('✅ Filter settings saved successfully');
         
         // Refresh notifications with the new filters immediately
+        console.log('🔄 Refreshing notifications with new filters...');
         await loadNotifications(newSelectedOrgs, newSelectedRepos);
       } else {
-        console.error('Failed to save filter settings');
+        console.error('❌ Failed to save filter settings');
       }
     }
   } catch (error) {
-    console.error('Error saving filter settings:', error);
+    console.error('❌ Error saving filter settings:', error);
   }
 };
 
@@ -468,7 +490,7 @@ const handleSettingsChange = async () => {
               <p>{error}</p>
               <button 
                 className="btn btn-primary" 
-                onClick={() => loadNotifications()}
+                onClick={() => loadNotifications(selectedOrgs, selectedRepos)}
               >
                 Try Again
               </button>
