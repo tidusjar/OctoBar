@@ -8,7 +8,7 @@
 
 /* Import component styles */
 @import './components/Header.css';
-@import './components/FilterBar.css';
+
 @import './components/NotificationList.css';
 @import './components/NotificationItem.css';
 @import './components/QuickActions.css';

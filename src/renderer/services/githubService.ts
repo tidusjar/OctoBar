@@ -221,6 +221,8 @@ export class GitHubService {
     // Custom filter parameters
     filterOrgs?: string[];
     filterRepos?: string[];
+    filterSubjectTypes?: string[];
+    filterReasons?: string[];
   } = {}): Promise<any[]> {
     if (!this.token) {
       throw new Error('No token set');
@@ -253,8 +255,14 @@ export class GitHubService {
     console.log('📨 Response data length:', data.length);
 
     // Apply custom filtering if filter parameters are provided
-    if (params.filterOrgs || params.filterRepos) {
-      const filteredData = this.filterNotifications(data, params.filterOrgs || [], params.filterRepos || []);
+    if (params.filterOrgs || params.filterRepos || params.filterSubjectTypes || params.filterReasons) {
+      const filteredData = this.filterNotifications(
+        data, 
+        params.filterOrgs || [], 
+        params.filterRepos || [],
+        params.filterSubjectTypes || [],
+        params.filterReasons || []
+      );
       console.log(`🔍 Filtered notifications: ${data.length} → ${filteredData.length}`);
       return filteredData;
     }
@@ -303,11 +311,17 @@ export class GitHubService {
   }
 
   /**
-   * Filter notifications based on organization and repository selections
+   * Filter notifications based on organization, repository, subject type, and reason selections
    */
-  private filterNotifications(notifications: any[], filterOrgs: string[], filterRepos: string[]): any[] {
+  private filterNotifications(
+    notifications: any[], 
+    filterOrgs: string[], 
+    filterRepos: string[], 
+    filterSubjectTypes: string[] = [], 
+    filterReasons: string[] = []
+  ): any[] {
     // If no filters are applied, return all notifications
-    if (filterOrgs.length === 0 && filterRepos.length === 0) {
+    if (filterOrgs.length === 0 && filterRepos.length === 0 && filterSubjectTypes.length === 0 && filterReasons.length === 0) {
       console.log('🔍 No filters applied, returning all notifications');
       return notifications;
     }
@@ -315,6 +329,8 @@ export class GitHubService {
     console.log('🔍 Filtering notifications with:', { 
       filterOrgs, 
       filterRepos, 
+      filterSubjectTypes,
+      filterReasons,
       totalNotifications: notifications.length 
     });
 
@@ -329,36 +345,57 @@ export class GitHubService {
       const ownerId = repo.owner?.id?.toString();
       const ownerLogin = repo.owner?.login;
       const repoName = repo.full_name;
+      const subjectType = notification.subject?.type;
+      const reason = notification.reason;
 
       console.log(`🔍 Checking notification ${notification.id} from repo ${repoName}:`, {
         repoId,
         ownerId,
         ownerLogin,
+        subjectType,
+        reason,
         isRepoSelected: filterRepos.includes(repoId),
         isOwnerSelected: ownerId && filterOrgs.includes(ownerId),
-        isOwnerLoginSelected: ownerLogin && filterOrgs.includes(ownerLogin)
+        isOwnerLoginSelected: ownerLogin && filterOrgs.includes(ownerLogin),
+        isSubjectTypeSelected: filterSubjectTypes.length === 0 || filterSubjectTypes.includes(subjectType),
+        isReasonSelected: filterReasons.length === 0 || filterReasons.includes(reason)
       });
 
-      // Check if the repository is directly selected
-      if (filterRepos.includes(repoId)) {
-        console.log(`✅ Repository ${repoName} (ID: ${repoId}) is directly selected`);
-        return true;
+      // Check repository/organization filters
+      let matchesRepoFilter = false;
+      if (filterOrgs.length === 0 && filterRepos.length === 0) {
+        matchesRepoFilter = true; // No repo/org filters applied
+      } else {
+        // Check if the repository is directly selected
+        if (filterRepos.includes(repoId)) {
+          console.log(`✅ Repository ${repoName} (ID: ${repoId}) is directly selected`);
+          matchesRepoFilter = true;
+        }
+        // Check if the repository's owner (organization or user) is selected by ID
+        else if (ownerId && filterOrgs.includes(ownerId)) {
+          console.log(`✅ Repository ${repoName} owner (ID: ${ownerId}) is selected`);
+          matchesRepoFilter = true;
+        }
+        // Check if the repository's owner is selected by login (fallback)
+        else if (ownerLogin && filterOrgs.includes(ownerLogin)) {
+          console.log(`✅ Repository ${repoName} owner (login: ${ownerLogin}) is selected`);
+          matchesRepoFilter = true;
+        }
       }
 
-      // Check if the repository's owner (organization or user) is selected by ID
-      if (ownerId && filterOrgs.includes(ownerId)) {
-        console.log(`✅ Repository ${repoName} owner (ID: ${ownerId}) is selected`);
-        return true;
+      // Check subject type filter
+      const matchesSubjectTypeFilter = filterSubjectTypes.length === 0 || filterSubjectTypes.includes(subjectType);
+
+      // Check reason filter
+      const matchesReasonFilter = filterReasons.length === 0 || filterReasons.includes(reason);
+
+      const matches = matchesRepoFilter && matchesSubjectTypeFilter && matchesReasonFilter;
+      
+      if (!matches) {
+        console.log(`❌ Notification ${notification.id} does not match filters`);
       }
 
-      // Check if the repository's owner is selected by login (fallback)
-      if (ownerLogin && filterOrgs.includes(ownerLogin)) {
-        console.log(`✅ Repository ${repoName} owner (login: ${ownerLogin}) is selected`);
-        return true;
-      }
-
-      console.log(`❌ Repository ${repoName} does not match any filters`);
-      return false;
+      return matches;
     });
 
     console.log(`🔍 Filtering complete: ${notifications.length} → ${filtered.length} notifications`);

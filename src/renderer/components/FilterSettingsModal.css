@@ -22,7 +22,7 @@
   border: 1px solid var(--color-border-light);
   box-shadow: var(--shadow-xl);
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
@@ -173,6 +173,166 @@
   white-space: nowrap;
 }
 
+/* Enhanced Filter UI Styles */
+.filter-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-background-secondary);
+  border-bottom: 1px solid var(--color-border-secondary);
+  margin: 0;
+}
+
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: transparent;
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.filter-tab:hover {
+  background: var(--color-background-primary);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-tab.active {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.tab-icon {
+  font-size: var(--font-size-base);
+}
+
+.tab-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.filter-tab-content {
+  padding: var(--spacing-lg);
+  min-height: 300px;
+}
+
+.filter-section {
+  width: 100%;
+}
+
+.filter-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.filter-section-header h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.filter-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.filter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  background: var(--color-background-primary);
+}
+
+.filter-item:hover {
+  border-color: var(--color-primary);
+  background: var(--color-background-secondary);
+}
+
+.filter-item input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.filter-item input[type="checkbox"]:checked + .filter-icon,
+.filter-item input[type="checkbox"]:checked ~ .filter-label {
+  color: var(--color-primary);
+}
+
+.filter-item input[type="checkbox"]:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.filter-item-detailed {
+  align-items: flex-start;
+  padding: var(--spacing-lg);
+}
+
+.filter-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.filter-item-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.filter-icon {
+  font-size: var(--font-size-lg);
+  min-width: 20px;
+  text-align: center;
+}
+
+.filter-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.filter-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed);
+}
+
 /* Responsive modal adjustments */
 @media (max-width: 600px) {
   .modal-overlay {
@@ -184,9 +344,20 @@
     max-height: 95vh;
   }
   
-  .modal-body .filter-grid {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-md);
+  .filter-tabs {
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+  
+  .filter-tab {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .filter-grid {
+    gap: var(--spacing-sm);
   }
   
   .modal-header,
@@ -196,5 +367,9 @@
   
   .modal-body .filter-step {
     padding: 0 var(--spacing-xl) var(--spacing-lg);
+  }
+  
+  .filter-tab-content {
+    padding: var(--spacing-lg) var(--spacing-xl);
   }
 }

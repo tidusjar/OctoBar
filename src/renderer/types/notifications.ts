@@ -53,11 +53,18 @@ export interface NotificationGroup {
 
 export type FilterType = 'all' | 'mentions' | 'reviews' | 'assignments' | 'comments' | 'security' | 'other';
 
+// Notification subject types (what the notification is about)
+export type NotificationSubjectType = 'Issue' | 'PullRequest' | 'Commit' | 'Release' | 'Discussion';
+
+// Notification reasons (why you got the notification)
+export type NotificationReason = 'assign' | 'author' | 'comment' | 'invitation' | 'manual' | 'mention' | 'push' | 'review_requested' | 'security_alert' | 'state_change' | 'subscribed' | 'team_mention';
+
 export interface NotificationFilters {
   type: FilterType;
   organizations: string[];
   repositories: string[];
   reasons: string[];
+  subjectTypes: NotificationSubjectType[];
   unreadOnly: boolean;
 }
 

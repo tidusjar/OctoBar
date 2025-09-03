@@ -192,7 +192,7 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
               <p>No organizations found. You can still receive notifications from your personal repositories.</p>
             </div>
           ) : (
-            <div className="filter-grid">
+            <div className="filter-list">
               {filteredOrgs.map((org) => (
                 <motion.div
                   key={org.id}
@@ -254,7 +254,7 @@ export function FilterStep({ selectedOrgs, selectedRepos, onOrgsChange, onReposC
               <p>No repositories found.</p>
             </div>
           ) : (
-            <div className="filter-grid">
+            <div className="filter-list">
               {filteredRepos.map((repo) => (
                 <motion.div
                   key={repo.id}

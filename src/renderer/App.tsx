@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { NotificationGroup, FilterType } from './types/notifications';
+import { NotificationGroup, NotificationSubjectType, NotificationReason } from './types/notifications';
 import { GitHubService } from './services/githubService';
 import { NotificationList } from './components/NotificationList';
-import { FilterBar } from './components/FilterBar';
+
 import { Header } from './components/Header';
 import { SetupWizard } from './components/SetupWizard';
 import { FilterSettingsModal } from './components/FilterSettingsModal';
@@ -15,7 +15,7 @@ import './App.css';
 function App() {
   const [notifications, setNotifications] = useState<NotificationGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterType>('all');
+
   const [unreadCount, setUnreadCount] = useState(0);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
@@ -25,6 +25,8 @@ function App() {
   const [showGeneralSettings, setShowGeneralSettings] = useState(false);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+  const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<NotificationSubjectType[]>([]);
+  const [selectedReasons, setSelectedReasons] = useState<NotificationReason[]>([]);
   const [refreshInterval, setRefreshInterval] = useState<number>(5); // Default 5 minutes
   const [notificationSettings, setNotificationSettings] = useState({
     enableSound: true,
@@ -38,7 +40,7 @@ function App() {
   // Background refresh hook
   useBackgroundRefresh({
     refreshInterval,
-    onRefresh: () => loadNotifications(),
+    onRefresh: () => loadNotifications(selectedOrgs, selectedRepos, selectedSubjectTypes, selectedReasons),
     enabled: setupComplete && !!githubService
   });
 
@@ -56,7 +58,7 @@ function App() {
       // Load settings first, then filter settings, then notifications
       loadSettings().then(() => {
         loadFilterSettings().then((filterSettings) => {
-          loadNotifications(filterSettings.organizations, filterSettings.repositories);
+          loadNotifications(filterSettings.organizations, filterSettings.repositories, filterSettings.subjectTypes, filterSettings.reasons);
         });
       });
     }
@@ -138,7 +140,12 @@ function App() {
     }
   };
 
-  const loadNotifications = async (customFilterOrgs?: string[], customFilterRepos?: string[]) => {
+  const loadNotifications = async (
+    customFilterOrgs?: string[], 
+    customFilterRepos?: string[], 
+    customFilterSubjectTypes?: NotificationSubjectType[], 
+    customFilterReasons?: NotificationReason[]
+  ) => {
     if (!githubService) {
       console.error('GitHub service not initialized');
       return;
@@ -161,21 +168,31 @@ function App() {
       // Use custom filter parameters if provided, otherwise use current state
       const filterOrgs = customFilterOrgs !== undefined ? customFilterOrgs : selectedOrgs;
       const filterRepos = customFilterRepos !== undefined ? customFilterRepos : selectedRepos;
+      const filterSubjectTypes = customFilterSubjectTypes !== undefined ? customFilterSubjectTypes : selectedSubjectTypes;
+      const filterReasons = customFilterReasons !== undefined ? customFilterReasons : selectedReasons;
       
       console.log('🔍 Filter parameters for API call:', {
         customFilterOrgs,
         customFilterRepos,
+        customFilterSubjectTypes,
+        customFilterReasons,
         selectedOrgs,
         selectedRepos,
+        selectedSubjectTypes,
+        selectedReasons,
         finalFilterOrgs: filterOrgs,
-        finalFilterRepos: filterRepos
+        finalFilterRepos: filterRepos,
+        finalFilterSubjectTypes: filterSubjectTypes,
+        finalFilterReasons: filterReasons
       });
       
       // Add filter parameters to the API call
       const apiParams = {
         ...params,
         filterOrgs: filterOrgs,
-        filterRepos: filterRepos
+        filterRepos: filterRepos,
+        filterSubjectTypes: filterSubjectTypes,
+        filterReasons: filterReasons
       };
       
       const rawNotifications = await githubService.getNotifications(apiParams);
@@ -315,40 +332,9 @@ function App() {
     }));
   };
 
-  const handleFilterChange = (newFilter: FilterType) => {
-    setFilter(newFilter);
-  };
 
-  // Filter notifications based on the selected filter type
-  const getFilteredNotifications = (): NotificationGroup[] => {
-    if (filter === 'all') {
-      return notifications;
-    }
 
-    return notifications.map(group => ({
-      ...group,
-      notifications: group.notifications.filter(notification => {
-        const reason = notification.reason;
-        
-        switch (filter) {
-          case 'mentions':
-            return reason === 'mention' || reason === 'team_mention';
-          case 'reviews':
-            return reason === 'review_requested';
-          case 'assignments':
-            return reason === 'assign';
-          case 'comments':
-            return reason === 'comment' || reason === 'subscribed';
-          case 'security':
-            return reason === 'security_alert';
-          case 'other':
-            return !['mention', 'team_mention', 'review_requested', 'assign', 'comment', 'subscribed', 'security_alert'].includes(reason);
-          default:
-            return true;
-        }
-      })
-    })).filter(group => group.notifications.length > 0);
-  };
+
 
   const handleMarkAsRead = async (notificationId: string) => {
     if (!githubService) return;
@@ -397,10 +383,15 @@ function App() {
   };
 
   const handleRefresh = () => {
-    loadNotifications(selectedOrgs, selectedRepos);
+    loadNotifications(selectedOrgs, selectedRepos, selectedSubjectTypes, selectedReasons);
   };
 
-  const loadFilterSettings = async (): Promise<{ organizations: string[], repositories: string[] }> => {
+  const loadFilterSettings = async (): Promise<{ 
+    organizations: string[], 
+    repositories: string[], 
+    subjectTypes: NotificationSubjectType[], 
+    reasons: NotificationReason[] 
+  }> => {
     try {
       console.log('�� Attempting to load filter settings...');
       if (window.electronAPI && (window.electronAPI as any).getFilterSettings) {
@@ -408,27 +399,33 @@ function App() {
         const filterSettings = await (window.electronAPI as any).getFilterSettings();
         console.log('📋 Raw filter settings from storage:', filterSettings);
         if (filterSettings) {
-          setSelectedOrgs(filterSettings.organizations);
-          setSelectedRepos(filterSettings.repositories);
+          setSelectedOrgs(filterSettings.organizations || []);
+          setSelectedRepos(filterSettings.repositories || []);
+          setSelectedSubjectTypes(filterSettings.subjectTypes || []);
+          setSelectedReasons(filterSettings.reasons || []);
           console.log('✅ Filter settings loaded successfully:', {
             organizations: filterSettings.organizations,
-            repositories: filterSettings.repositories
+            repositories: filterSettings.repositories,
+            subjectTypes: filterSettings.subjectTypes,
+            reasons: filterSettings.reasons
           });
           return {
-            organizations: filterSettings.organizations,
-            repositories: filterSettings.repositories
+            organizations: filterSettings.organizations || [],
+            repositories: filterSettings.repositories || [],
+            subjectTypes: filterSettings.subjectTypes || [],
+            reasons: filterSettings.reasons || []
           };
         } else {
           console.log('ℹ️ No filter settings found in storage');
-          return { organizations: [], repositories: [] };
+          return { organizations: [], repositories: [], subjectTypes: [], reasons: [] };
         }
       } else {
         console.log('❌ getFilterSettings method not available');
-        return { organizations: [], repositories: [] };
+        return { organizations: [], repositories: [], subjectTypes: [], reasons: [] };
       }
     } catch (error) {
       console.error('❌ Failed to load filter settings:', error);
-      return { organizations: [], repositories: [] };
+      return { organizations: [], repositories: [], subjectTypes: [], reasons: [] };
     }
   };
 
@@ -447,23 +444,37 @@ const handleQuit = () => {
   }
 };
 
-const handleSaveFilterSettings = async (newSelectedOrgs: string[], newSelectedRepos: string[]) => {
+const handleSaveFilterSettings = async (
+  newSelectedOrgs: string[], 
+  newSelectedRepos: string[], 
+  newSelectedSubjectTypes: NotificationSubjectType[], 
+  newSelectedReasons: NotificationReason[]
+) => {
   try {
     console.log('💾 Saving filter settings:', {
       organizations: newSelectedOrgs,
-      repositories: newSelectedRepos
+      repositories: newSelectedRepos,
+      subjectTypes: newSelectedSubjectTypes,
+      reasons: newSelectedReasons
     });
     
     if (window.electronAPI && (window.electronAPI as any).saveFilterSettings) {
-      const success = await (window.electronAPI as any).saveFilterSettings(newSelectedOrgs, newSelectedRepos);
+      const success = await (window.electronAPI as any).saveFilterSettings(
+        newSelectedOrgs, 
+        newSelectedRepos, 
+        newSelectedSubjectTypes, 
+        newSelectedReasons
+      );
       if (success) {
         setSelectedOrgs(newSelectedOrgs);
         setSelectedRepos(newSelectedRepos);
+        setSelectedSubjectTypes(newSelectedSubjectTypes);
+        setSelectedReasons(newSelectedReasons);
         console.log('✅ Filter settings saved successfully');
         
         // Refresh notifications with the new filters immediately
         console.log('🔄 Refreshing notifications with new filters...');
-        await loadNotifications(newSelectedOrgs, newSelectedRepos);
+        await loadNotifications(newSelectedOrgs, newSelectedRepos, newSelectedSubjectTypes, newSelectedReasons);
       } else {
         console.error('❌ Failed to save filter settings');
       }
@@ -513,10 +524,7 @@ const handleSettingsChange = async () => {
           onQuit={handleQuit}
         />
         
-        <FilterBar 
-          currentFilter={filter}
-          onFilterChange={handleFilterChange}
-        />
+
         
         <main className="main-content">
           {loading ? (
@@ -531,14 +539,14 @@ const handleSettingsChange = async () => {
               <p>{error}</p>
               <button 
                 className="btn btn-primary" 
-                onClick={() => loadNotifications(selectedOrgs, selectedRepos)}
+                onClick={() => loadNotifications(selectedOrgs, selectedRepos, selectedSubjectTypes, selectedReasons)}
               >
                 Try Again
               </button>
             </div>
           ) : (
             <NotificationList 
-              notifications={getFilteredNotifications()}
+              notifications={notifications}
               onMarkAsRead={handleMarkAsRead}
             />
           )}
@@ -549,6 +557,8 @@ const handleSettingsChange = async () => {
           onSave={handleSaveFilterSettings}
           initialSelectedOrgs={selectedOrgs}
           initialSelectedRepos={selectedRepos}
+          initialSelectedSubjectTypes={selectedSubjectTypes}
+          initialSelectedReasons={selectedReasons}
         />
         <SettingsModal
           isOpen={showGeneralSettings}
