@@ -2,10 +2,10 @@
 
 :root {
   /* Color Palette - Light Theme */
-  --color-primary: #007aff;
-  --color-primary-hover: #0056b3;
-  --color-primary-light: rgba(0, 122, 255, 0.1);
-  --color-primary-lighter: rgba(0, 122, 255, 0.05);
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #7c3aed;
+  --color-primary-light: rgba(139, 92, 246, 0.1);
+  --color-primary-lighter: rgba(139, 92, 246, 0.05);
   
   --color-success: #34c759;
   --color-danger: #ff3b30;
@@ -95,10 +95,10 @@
 /* Dark Theme Variables */
 [data-theme="dark"] {
   /* Color Palette - Dark Theme */
-  --color-primary: #0a84ff;
-  --color-primary-hover: #409cff;
-  --color-primary-light: rgba(10, 132, 255, 0.15);
-  --color-primary-lighter: rgba(10, 132, 255, 0.08);
+  --color-primary: #a78bfa;
+  --color-primary-hover: #c4b5fd;
+  --color-primary-light: rgba(167, 139, 250, 0.15);
+  --color-primary-lighter: rgba(167, 139, 250, 0.08);
   
   --color-success: #30d158;
   --color-danger: #ff453a;

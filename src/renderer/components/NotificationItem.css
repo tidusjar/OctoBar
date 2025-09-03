@@ -95,9 +95,9 @@
 }
 
 .type-icon[title*="mention"] {
-  background: rgba(0, 122, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
   color: var(--color-primary);
-  border-color: rgba(0, 122, 255, 0.2);
+  border-color: rgba(139, 92, 246, 0.2);
 }
 
 .type-icon[title*="security"] {
