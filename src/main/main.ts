@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, screen, ipcMain, Notification } from 'electron';
 import * as path from 'path';
 import { SecureStorage } from './secureStorage';
+import { SettingsStorage, FilterSettings, AppSettings } from './settingsStorage';
 
 // Add isQuiting property to app object
 (app as any).isQuiting = false;
@@ -141,7 +142,7 @@ function createPopupWindow() {
   });
 
   popupWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log(`🔍 Renderer console [${level}]:`, message);
+    console.log(`🔍 Renderer [${level}]:`, message);
   });
   
   // Load the React app
@@ -295,29 +296,39 @@ ipcMain.handle('open-in-browser', async (_, url: string) => {
 });
 
 // IPC handlers for filter settings management
-ipcMain.handle('save-filter-settings', async (_, selectedOrgs: string[], selectedRepos: string[]) => {
-  return await SecureStorage.saveFilterSettings(selectedOrgs, selectedRepos);
+ipcMain.handle('save-filter-settings', async (_, filterSettings: FilterSettings) => {
+  return await SettingsStorage.saveFilterSettings(filterSettings);
 });
 
 ipcMain.handle('get-filter-settings', async () => {
-  return await SecureStorage.getFilterSettings();
+  return await SettingsStorage.loadFilterSettings();
 });
 
 ipcMain.handle('has-filter-settings', async () => {
-  return await SecureStorage.hasFilterSettings();
+  return SettingsStorage.hasSettings();
 });
 
 ipcMain.handle('delete-filter-settings', async () => {
-  return await SecureStorage.deleteFilterSettings();
+  return await SettingsStorage.deleteSettings();
 });
 
 // IPC handlers for general settings management
-ipcMain.handle('set-settings', async (_, settings: any) => {
-  return await SecureStorage.saveSettings(settings);
+ipcMain.handle('set-settings', async (_, settings: AppSettings) => {
+  return await SettingsStorage.saveAppSettings(settings);
 });
 
 ipcMain.handle('get-settings', async () => {
-  return await SecureStorage.getSettings();
+  return await SettingsStorage.loadAppSettings();
+});
+
+// IPC handler for loading all settings
+ipcMain.handle('load-all-settings', async () => {
+  return await SettingsStorage.loadSettings();
+});
+
+// IPC handler for saving all settings
+ipcMain.handle('save-all-settings', async (_, settings: any) => {
+  return await SettingsStorage.saveSettings(settings);
 });
 
 // IPC handler for notifications

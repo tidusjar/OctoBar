@@ -19,13 +19,25 @@ declare global {
       deletePAT: () => Promise<boolean>;
       hasPAT: () => Promise<boolean>;
       // Filter settings management
-      saveFilterSettings: (selectedOrgs: string[], selectedRepos: string[]) => Promise<boolean>;
-      getFilterSettings: () => Promise<{ organizations: string[], repositories: string[] } | null>;
+      saveFilterSettings: (filterSettings: {
+        organizations: string[];
+        repositories: string[];
+        subjectTypes: string[];
+        reasons: string[];
+      }) => Promise<boolean>;
+      getFilterSettings: () => Promise<{
+        organizations: string[];
+        repositories: string[];
+        subjectTypes: string[];
+        reasons: string[];
+      }>;
       hasFilterSettings: () => Promise<boolean>;
       deleteFilterSettings: () => Promise<boolean>;
       // Settings management
       setSettings: (settings: any) => Promise<boolean>;
       getSettings: () => Promise<any>;
+      loadAllSettings: () => Promise<any>;
+      saveAllSettings: (settings: any) => Promise<boolean>;
       // App control
       quit: () => Promise<void>;
       onNotificationUpdate: (callback: (count: number) => void) => void;

@@ -24,6 +24,12 @@ interface GitHubOrganization {
   description: string;
 }
 
+// Simple logging utility with timestamps
+const log = (message: string, ...args: any[]) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`, ...args);
+};
+
 export class GitHubService {
   private baseUrl = 'https://api.github.com';
   private token: string | null = null;
@@ -223,51 +229,118 @@ export class GitHubService {
     filterRepos?: string[];
     filterSubjectTypes?: string[];
     filterReasons?: string[];
+    // Pagination control
+    maxPages?: number;
   } = {}): Promise<any[]> {
     if (!this.token) {
       throw new Error('No token set');
     }
 
     const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        searchParams.append(key, value.toString());
+    
+    // Only add GitHub API supported parameters to the URL
+    const supportedParams = ['all', 'participating', 'since', 'before', 'per_page', 'page'];
+    supportedParams.forEach(key => {
+      if (params[key as keyof typeof params] !== undefined) {
+        searchParams.append(key, params[key as keyof typeof params]!.toString());
       }
     });
 
     const url = `${this.baseUrl}/notifications?${searchParams.toString()}`;
-    console.log('🌐 Fetching notifications from:', url);
-    console.log('🔑 Headers:', this.getHeaders());
+    log('🌐 Fetching notifications from:', url);
+    log('🔑 Headers:', this.getHeaders());
+    log('🔍 Custom filters will be applied client-side:', {
+      filterOrgs: params.filterOrgs,
+      filterRepos: params.filterRepos,
+      filterSubjectTypes: params.filterSubjectTypes,
+      filterReasons: params.filterReasons
+    });
 
     const response = await fetch(url, {
       method: 'GET',
       headers: this.getHeaders()
     });
 
-    console.log('📡 Response status:', response.status, response.statusText);
-    console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+    log('📡 Response status:', response.status, response.statusText);
+    log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       throw new Error(`Failed to get notifications: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    console.log('📨 Response data length:', data.length);
+    // Collect all notifications with pagination
+    let allNotifications: any[] = [];
+    let currentPage = params.page || 1;
+    const maxPages = params.maxPages || 3; // Limit to 3 pages (300 notifications max)
+    
+    while (currentPage <= maxPages) {
+      // Update search params for current page
+      const pageParams = new URLSearchParams();
+      supportedParams.forEach(key => {
+        if (params[key as keyof typeof params] !== undefined) {
+          pageParams.append(key, params[key as keyof typeof params]!.toString());
+        }
+      });
+      pageParams.set('page', currentPage.toString());
+      
+      const pageUrl = `${this.baseUrl}/notifications?${pageParams.toString()}`;
+      log(`🌐 Fetching page ${currentPage} from:`, pageUrl);
+      
+      const pageResponse = await fetch(pageUrl, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+      
+      if (!pageResponse.ok) {
+        throw new Error(`Failed to get notifications page ${currentPage}: ${pageResponse.status} ${pageResponse.statusText}`);
+      }
+      
+      // Check for rate limiting
+      const pollInterval = pageResponse.headers.get('X-Poll-Interval');
+      if (pollInterval) {
+        log(`⏰ GitHub suggests polling every ${pollInterval} seconds`);
+      }
+      
+      const pageData = await pageResponse.json();
+      log(`📨 Page ${currentPage} data length:`, pageData.length);
+      
+      // If we get less than per_page, we've reached the end
+      if (pageData.length < (params.per_page || 100)) {
+        allNotifications = allNotifications.concat(pageData);
+        break;
+      }
+      
+      allNotifications = allNotifications.concat(pageData);
+      currentPage++;
+    }
+    
+    log(`📨 Total notifications fetched: ${allNotifications.length} across ${currentPage - 1} pages`);
 
     // Apply custom filtering if filter parameters are provided
     if (params.filterOrgs || params.filterRepos || params.filterSubjectTypes || params.filterReasons) {
+      log(`🔍 Starting client-side filtering of ${allNotifications.length} notifications...`);
+      log(`🔍 Filter parameters received:`, {
+        filterOrgs: params.filterOrgs,
+        filterRepos: params.filterRepos,
+        filterSubjectTypes: params.filterSubjectTypes,
+        filterReasons: params.filterReasons
+      });
+      const startTime = performance.now();
+      
       const filteredData = this.filterNotifications(
-        data, 
+        allNotifications, 
         params.filterOrgs || [], 
         params.filterRepos || [],
         params.filterSubjectTypes || [],
         params.filterReasons || []
       );
-      console.log(`🔍 Filtered notifications: ${data.length} → ${filteredData.length}`);
+      
+      const endTime = performance.now();
+      log(`🔍 Filtered notifications: ${allNotifications.length} → ${filteredData.length} (${(endTime - startTime).toFixed(2)}ms)`);
       return filteredData;
     }
 
-    return data;
+    return allNotifications;
   }
 
   /**
@@ -278,14 +351,24 @@ export class GitHubService {
       throw new Error('No token set');
     }
 
-    const response = await fetch(`${this.baseUrl}/notifications/threads/${threadId}`, {
+    const url = `${this.baseUrl}/notifications/threads/${threadId}`;
+    log(`🔍 Making API call to: ${url}`);
+    log(`🔍 Headers:`, this.getHeaders());
+
+    const response = await fetch(url, {
       method: 'PATCH',
       headers: this.getHeaders()
     });
 
+    log(`🔍 Response status: ${response.status} ${response.statusText}`);
+    
     if (!response.ok) {
-      throw new Error(`Failed to mark notification as read: ${response.status} ${response.statusText}`);
+      const errorText = await response.text().catch(() => 'Could not read error response');
+      log(`❌ Error response body:`, errorText);
+      throw new Error(`Failed to mark notification as read: ${response.status} ${response.statusText} - ${errorText}`);
     }
+    
+    log(`✅ Successfully marked notification ${threadId} as read via API`);
   }
 
   /**
@@ -311,6 +394,88 @@ export class GitHubService {
   }
 
   /**
+   * Mark filtered notifications as read (respects current filters)
+   */
+  async markFilteredNotificationsAsRead(filterParams: {
+    filterOrgs?: string[];
+    filterRepos?: string[];
+    filterSubjectTypes?: string[];
+    filterReasons?: string[];
+  }): Promise<{ markedCount: number; totalFiltered: number }> {
+    if (!this.token) {
+      throw new Error('No token set');
+    }
+
+    log('🔍 Marking filtered notifications as read with filters:', filterParams);
+
+    // First, get the filtered notifications
+    const filteredNotifications = await this.getNotifications({
+      ...filterParams,
+      per_page: 100,
+      maxPages: 10 // Allow more pages for marking as read
+    });
+
+    if (filteredNotifications.length === 0) {
+      log('✅ No filtered notifications to mark as read');
+      return { markedCount: 0, totalFiltered: 0 };
+    }
+
+    log(`🔍 Found ${filteredNotifications.length} filtered notifications to mark as read`);
+    log('🔍 Notification IDs to mark as read:', filteredNotifications.map(n => n.id));
+    log('🔍 First notification structure:', filteredNotifications[0] ? {
+      id: filteredNotifications[0].id,
+      thread_id: filteredNotifications[0].thread_id,
+      subject: filteredNotifications[0].subject,
+      repository: filteredNotifications[0].repository?.full_name
+    } : 'No notifications');
+
+    // Mark each notification as read individually
+    let markedCount = 0;
+    const errors: string[] = [];
+
+    for (const notification of filteredNotifications) {
+      try {
+        // Use thread_id if available, otherwise fall back to id
+        const threadId = notification.thread_id || notification.id;
+        log(`🔍 Marking notification ${threadId} as read...`);
+        log(`🔍 Notification details:`, {
+          id: notification.id,
+          thread_id: notification.thread_id,
+          using_thread_id: threadId,
+          type: typeof threadId,
+          subject: notification.subject?.title,
+          repository: notification.repository?.full_name
+        });
+        
+        await this.markNotificationAsRead(threadId);
+        markedCount++;
+        log(`✅ Successfully marked notification ${threadId} as read`);
+        
+        // Add a small delay to avoid rate limiting
+        if (markedCount % 10 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      } catch (error) {
+        const errorMsg = `Failed to mark notification ${notification.id} as read: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        log(`❌ ${errorMsg}`);
+        log(`🔍 Full error details:`, error);
+        errors.push(errorMsg);
+      }
+    }
+
+    if (errors.length > 0) {
+      log(`⚠️ ${errors.length} notifications failed to be marked as read:`, errors);
+    }
+
+    log(`✅ Successfully marked ${markedCount} out of ${filteredNotifications.length} filtered notifications as read`);
+    
+    return { 
+      markedCount, 
+      totalFiltered: filteredNotifications.length 
+    };
+  }
+
+  /**
    * Filter notifications based on organization, repository, subject type, and reason selections
    */
   private filterNotifications(
@@ -322,22 +487,29 @@ export class GitHubService {
   ): any[] {
     // If no filters are applied, return all notifications
     if (filterOrgs.length === 0 && filterRepos.length === 0 && filterSubjectTypes.length === 0 && filterReasons.length === 0) {
-      console.log('🔍 No filters applied, returning all notifications');
+      log('🔍 No filters applied, returning all notifications');
       return notifications;
     }
 
-    console.log('🔍 Filtering notifications with:', { 
+    log('🔍 Filtering notifications with:', { 
       filterOrgs, 
       filterRepos, 
       filterSubjectTypes,
       filterReasons,
       totalNotifications: notifications.length 
     });
+    
+    log('🔍 Filter details:', {
+      filterOrgsLength: filterOrgs.length,
+      filterReposLength: filterRepos.length,
+      filterOrgs: filterOrgs,
+      filterRepos: filterRepos
+    });
 
     const filtered = notifications.filter(notification => {
       const repo = notification.repository;
       if (!repo) {
-        console.log('🔍 Notification has no repository, excluding:', notification.id);
+        log('🔍 Notification has no repository, excluding:', notification.id);
         return false;
       }
 
@@ -347,8 +519,35 @@ export class GitHubService {
       const repoName = repo.full_name;
       const subjectType = notification.subject?.type;
       const reason = notification.reason;
+      
+      // Debug: Log the raw repository data
+      if (notifications.indexOf(notification) < 2) {
+        log('🔍 Raw repository data:', {
+          repoId: repo.id,
+          repoIdType: typeof repo.id,
+          repoIdString: repoId,
+          ownerId: repo.owner?.id,
+          ownerIdType: typeof repo.owner?.id,
+          ownerIdString: ownerId
+        });
+      }
+      
+      // Debug: Log the first few notifications to see the data structure
+      if (notifications.indexOf(notification) < 3) {
+        log('🔍 Sample notification data:', {
+          notificationId: notification.id,
+          repoId: repoId,
+          repoIdType: typeof repoId,
+          ownerId: ownerId,
+          ownerIdType: typeof ownerId,
+          ownerLogin: ownerLogin,
+          repoName: repoName,
+          subjectType: subjectType,
+          reason: reason
+        });
+      }
 
-      console.log(`🔍 Checking notification ${notification.id} from repo ${repoName}:`, {
+      log(`🔍 Checking notification ${notification.id} from repo ${repoName}:`, {
         repoId,
         ownerId,
         ownerLogin,
@@ -367,19 +566,41 @@ export class GitHubService {
         matchesRepoFilter = true; // No repo/org filters applied
       } else {
         // Check if the repository is directly selected
-        if (filterRepos.includes(repoId)) {
-          console.log(`✅ Repository ${repoName} (ID: ${repoId}) is directly selected`);
-          matchesRepoFilter = true;
+        const isRepoSelected = filterRepos.includes(repoId) || 
+                              filterRepos.includes(repo.id.toString()) ||
+                              filterRepos.some(id => String(id).trim() === String(repoId).trim());
+        
+        // Check if the repository's owner (organization or user) is selected
+        const isOwnerSelected = (ownerId && filterOrgs.includes(ownerId)) || 
+                               (ownerLogin && filterOrgs.includes(ownerLogin));
+        
+        log(`🔍 Checking repo ${repoName} (ID: ${repoId}):`, {
+          isRepoSelected,
+          isOwnerSelected,
+          filterRepos,
+          filterOrgs,
+          repoId,
+          ownerId,
+          ownerLogin
+        });
+        
+        // If we have repository filters, only show explicitly selected repositories
+        if (filterRepos.length > 0) {
+          if (isRepoSelected) {
+            log(`✅ Repository ${repoName} (ID: ${repoId}) is directly selected`);
+            matchesRepoFilter = true;
+          } else {
+            log(`❌ Repository ${repoName} (ID: ${repoId}) is not in selected repositories`);
+          }
         }
-        // Check if the repository's owner (organization or user) is selected by ID
-        else if (ownerId && filterOrgs.includes(ownerId)) {
-          console.log(`✅ Repository ${repoName} owner (ID: ${ownerId}) is selected`);
-          matchesRepoFilter = true;
-        }
-        // Check if the repository's owner is selected by login (fallback)
-        else if (ownerLogin && filterOrgs.includes(ownerLogin)) {
-          console.log(`✅ Repository ${repoName} owner (login: ${ownerLogin}) is selected`);
-          matchesRepoFilter = true;
+        // If we only have organization filters (no repository filters), show all repos from those orgs
+        else if (filterOrgs.length > 0) {
+          if (isOwnerSelected) {
+            log(`✅ Repository ${repoName} owner (${ownerLogin || ownerId}) is selected`);
+            matchesRepoFilter = true;
+          } else {
+            log(`❌ Repository ${repoName} owner (${ownerLogin || ownerId}) is not selected`);
+          }
         }
       }
 
@@ -392,13 +613,23 @@ export class GitHubService {
       const matches = matchesRepoFilter && matchesSubjectTypeFilter && matchesReasonFilter;
       
       if (!matches) {
-        console.log(`❌ Notification ${notification.id} does not match filters`);
+        log(`❌ Notification ${notification.id} does not match filters`);
       }
 
       return matches;
     });
 
-    console.log(`🔍 Filtering complete: ${notifications.length} → ${filtered.length} notifications`);
+    log(`🔍 Filtering complete: ${notifications.length} → ${filtered.length} notifications`);
+    
+    // Debug: Log some statistics
+    if (filterRepos.length > 0) {
+      const repoMatches = filtered.filter(n => {
+        const repoId = n.repository?.id?.toString();
+        return repoId && filterRepos.includes(repoId);
+      });
+      log(`🔍 Repository filter results: ${repoMatches.length} notifications from selected repositories`);
+    }
+    
     return filtered;
   }
 }

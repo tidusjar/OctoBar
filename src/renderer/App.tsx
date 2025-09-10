@@ -3,6 +3,12 @@ import { NotificationGroup, NotificationSubjectType, NotificationReason } from '
 import { GitHubService } from './services/githubService';
 import { NotificationList } from './components/NotificationList';
 
+// Simple logging utility with timestamps
+const log = (message: string, ...args: any[]) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`, ...args);
+};
+
 import { Header } from './components/Header';
 import { SetupWizard } from './components/SetupWizard';
 import { FilterSettingsModal } from './components/FilterSettingsModal';
@@ -28,6 +34,7 @@ function App() {
   const [selectedSubjectTypes, setSelectedSubjectTypes] = useState<NotificationSubjectType[]>([]);
   const [selectedReasons, setSelectedReasons] = useState<NotificationReason[]>([]);
   const [refreshInterval, setRefreshInterval] = useState<number>(5); // Default 5 minutes
+  const [markedAsReadIds, setMarkedAsReadIds] = useState<Set<string>>(new Set());
   const [notificationSettings, setNotificationSettings] = useState({
     enableSound: true,
     enableDesktopNotifications: true
@@ -55,9 +62,12 @@ function App() {
 
   useEffect(() => {
     if (!showSetupWizard && setupComplete && githubService) {
+      log('🔄 App initialization: Loading settings and filters...');
       // Load settings first, then filter settings, then notifications
       loadSettings().then(() => {
+        log('⚙️ Settings loaded, now loading filter settings...');
         loadFilterSettings().then((filterSettings) => {
+          log('🔍 Filter settings loaded, now loading notifications with filters:', filterSettings);
           loadNotifications(filterSettings.organizations, filterSettings.repositories, filterSettings.subjectTypes, filterSettings.reasons);
         });
       });
@@ -89,16 +99,16 @@ function App() {
 
   const loadSettings = async () => {
     try {
-      console.log('⚙️ Loading app settings...');
+      log('⚙️ Loading app settings...');
       if ((window.electronAPI as any)?.getSettings) {
         const settings = await (window.electronAPI as any).getSettings();
         
         // Load refresh interval
         if (settings?.refreshInterval) {
           setRefreshInterval(settings.refreshInterval);
-          console.log(`✅ Refresh interval loaded: ${settings.refreshInterval} minutes`);
+          log(`✅ Refresh interval loaded: ${settings.refreshInterval} minutes`);
         } else {
-          console.log('ℹ️ No refresh interval found in settings, using default: 5 minutes');
+          log('ℹ️ No refresh interval found in settings, using default: 5 minutes');
         }
 
         // Load notification settings
@@ -109,12 +119,12 @@ function App() {
           };
           setNotificationSettings(newNotificationSettings);
           notificationService.updateSettings(newNotificationSettings);
-          console.log('✅ Notification settings loaded:', newNotificationSettings);
+          log('✅ Notification settings loaded:', newNotificationSettings);
         } else {
-          console.log('ℹ️ No notification settings found, using defaults');
+          log('ℹ️ No notification settings found, using defaults');
         }
       } else {
-        console.log('❌ getSettings method not available');
+        log('❌ getSettings method not available');
       }
     } catch (error) {
       console.error('❌ Failed to load settings:', error);
@@ -126,7 +136,7 @@ function App() {
       // Save the PAT that was entered during setup
       const pat = await window.electronAPI.getPAT();
       if (pat) {
-        console.log('Setup completed successfully. PAT saved and retrieved.');
+        log('Setup completed successfully. PAT saved and retrieved.');
         const service = new GitHubService(pat);
         setGithubService(service);
         setShowSetupWizard(false);
@@ -151,7 +161,7 @@ function App() {
       return;
     }
 
-    console.log('🔄 Loading notifications from GitHub API...');
+    log('🔄 Loading notifications from GitHub API...');
     setLoading(true);
     setError(null);
     
@@ -171,7 +181,7 @@ function App() {
       const filterSubjectTypes = customFilterSubjectTypes !== undefined ? customFilterSubjectTypes : selectedSubjectTypes;
       const filterReasons = customFilterReasons !== undefined ? customFilterReasons : selectedReasons;
       
-      console.log('🔍 Filter parameters for API call:', {
+      log('🔍 Filter parameters for API call:', {
         customFilterOrgs,
         customFilterRepos,
         customFilterSubjectTypes,
@@ -196,21 +206,25 @@ function App() {
       };
       
       const rawNotifications = await githubService.getNotifications(apiParams);
-      console.log(`📨 Received ${rawNotifications.length} notifications from GitHub`);
+      log(`📨 Received ${rawNotifications.length} notifications from GitHub`);
 
       // Transform GitHub notifications to our format
       const groupedNotifications = transformGitHubNotifications(rawNotifications);
       setNotifications(groupedNotifications);
       
-      // Calculate unread count
-      const count = rawNotifications.length;
+      // Calculate unread count based on the filtered notifications
+      const count = groupedNotifications.reduce((total, group) => total + group.notifications.length, 0);
       setUnreadCount(count);
-      console.log(`✅ Loaded ${count} unread notifications, grouped into ${groupedNotifications.length} repositories`);
+      log(`✅ Loaded ${count} unread notifications, grouped into ${groupedNotifications.length} repositories`);
+      
+      // Keep local tracking persistent - only clear when user manually refreshes
+      // This ensures notifications stay hidden until the user explicitly refreshes
+      log(`🔍 Local tracking: ${markedAsReadIds.size} notifications marked as read locally`);
 
       // Check for new notifications and trigger alerts
       // 1) Prefer ID-diff based detection so we catch new items even when the total count stays constant
       // 2) Keep the existing count-based check as a fallback
-      console.log(`🔍 Notification count comparison: previous=${previousNotificationCount}, current=${count}`);
+      log(`🔍 Notification count comparison: previous=${previousNotificationCount}, current=${count}`);
 
       const currentIds = new Set<string>(rawNotifications.map(n => String(n.id)));
       let newIds: string[] = [];
@@ -223,7 +237,7 @@ function App() {
       }
 
       if (newIds.length > 0) {
-        console.log(`🔔 Detected ${newIds.length} brand new notifications by ID`);
+        log(`🔔 Detected ${newIds.length} brand new notifications by ID`);
         const newestNotifications = rawNotifications.filter(n => newIds.includes(String(n.id)));
         await notificationService.notifyNewNotifications(newIds.length, undefined, newestNotifications);
       } else {
@@ -238,18 +252,18 @@ function App() {
         }
 
         if (updatedItems.length > 0) {
-          console.log(`🔔 Detected ${updatedItems.length} updated notifications by timestamp`);
+          log(`🔔 Detected ${updatedItems.length} updated notifications by timestamp`);
           await notificationService.notifyNewNotifications(updatedItems.length, undefined, updatedItems);
         } else if (previousNotificationCount > 0 && count > previousNotificationCount) {
           const newNotifications = count - previousNotificationCount;
-          console.log(`🔔 ${newNotifications} new notifications detected by count`);
+          log(`🔔 ${newNotifications} new notifications detected by count`);
           const newestNotifications = rawNotifications.slice(0, newNotifications);
           await notificationService.notifyNewNotifications(newNotifications, undefined, newestNotifications);
         } else if (previousNotificationCount === 0 && count > 0) {
           // First time loading notifications - don't show notification for existing ones
-          console.log(`🔔 First load: ${count} existing notifications found (not showing notification)`);
+          log(`🔔 First load: ${count} existing notifications found (not showing notification)`);
         } else if (previousNotificationCount > 0 && count <= previousNotificationCount) {
-          console.log(`🔔 No new notifications: count stayed the same or decreased (${previousNotificationCount} → ${count})`);
+          log(`🔔 No new notifications: count stayed the same or decreased (${previousNotificationCount} → ${count})`);
         }
       }
       
@@ -276,6 +290,18 @@ function App() {
   };
 
   const transformGitHubNotifications = (rawNotifications: any[]): NotificationGroup[] => {
+    // Filter out notifications that we've marked as read locally
+    const filteredNotifications = rawNotifications.filter(notification => {
+      const notificationId = notification.id.toString();
+      const isMarkedAsRead = markedAsReadIds.has(notificationId);
+      if (isMarkedAsRead) {
+        log(`🔍 Filtering out locally marked notification: ${notificationId}`);
+      }
+      return !isMarkedAsRead;
+    });
+    
+    log(`🔍 Filtered notifications: ${rawNotifications.length} → ${filteredNotifications.length} (removed ${rawNotifications.length - filteredNotifications.length} locally marked as read)`);
+    
     // Helper function to build the HTML URL for a notification
     const buildNotificationUrl = (notification: any): string => {
       const repoName = notification.repository.full_name;
@@ -306,7 +332,7 @@ function App() {
     // Group notifications by repository
     const grouped: { [key: string]: any[] } = {};
     
-    rawNotifications.forEach(notification => {
+    filteredNotifications.forEach(notification => {
       const repoName = notification.repository.full_name;
       if (!grouped[repoName]) {
         grouped[repoName] = [];
@@ -371,18 +397,104 @@ function App() {
     if (!githubService) return;
     
     try {
-      // Mark all as read on GitHub
-      await githubService.markAllNotificationsAsRead();
+      // Check if we have any filters applied
+      const hasFilters = selectedOrgs.length > 0 || selectedRepos.length > 0 || 
+                        selectedSubjectTypes.length > 0 || selectedReasons.length > 0;
       
-      // Update local state immediately - clear all notifications since they're all read
-      setNotifications([]);
-      setUnreadCount(0);
+      if (hasFilters) {
+        // Mark only filtered notifications as read
+        log('🔍 Marking filtered notifications as read with current filters:', {
+          selectedOrgs,
+          selectedRepos,
+          selectedSubjectTypes,
+          selectedReasons
+        });
+        
+        // Get the IDs of currently visible notifications to mark them as read
+        const currentNotificationIds = notifications.flatMap(group => 
+          group.notifications.map(notif => notif.id)
+        );
+        
+        log(`🔍 Marking ${currentNotificationIds.length} currently visible notifications as read:`, currentNotificationIds);
+        
+        // Mark each visible notification as read individually
+        let markedCount = 0;
+        const errors: string[] = [];
+        
+        for (const notificationId of currentNotificationIds) {
+          try {
+            log(`🔍 Marking notification ${notificationId} as read...`);
+            await githubService.markNotificationAsRead(notificationId);
+            markedCount++;
+            log(`✅ Successfully marked notification ${notificationId} as read`);
+            
+            // Add a small delay to avoid rate limiting
+            if (markedCount % 10 === 0) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+          } catch (error) {
+            const errorMsg = `Failed to mark notification ${notificationId} as read: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            log(`❌ ${errorMsg}`);
+            errors.push(errorMsg);
+          }
+        }
+        
+        if (errors.length > 0) {
+          log(`⚠️ ${errors.length} notifications failed to be marked as read:`, errors);
+        }
+        
+        const result = { markedCount, totalFiltered: currentNotificationIds.length };
+        
+        log(`✅ Marked ${result.markedCount} out of ${result.totalFiltered} filtered notifications as read`);
+        
+        // Show user feedback
+        if (result.markedCount > 0) {
+          await notificationService.notify({
+            title: 'Notifications Marked as Read',
+            body: `Marked ${result.markedCount} out of ${result.totalFiltered} filtered notifications as read`,
+            tag: 'mark-all-read'
+          });
+        }
+        
+        // Update local state immediately by removing the marked notifications
+        if (result.markedCount > 0) {
+          // Get the IDs of currently visible notifications to mark them as read locally
+          const currentNotificationIds = notifications.flatMap(group => 
+            group.notifications.map(notif => notif.id)
+          );
+          
+          // Add these IDs to our marked as read set
+          setMarkedAsReadIds(prev => {
+            const newSet = new Set(prev);
+            currentNotificationIds.forEach(id => newSet.add(id));
+            return newSet;
+          });
+          
+          // Clear the notifications from the UI immediately
+          setNotifications([]);
+          setUnreadCount(0);
+        }
+        
+        // No automatic refresh - let local tracking handle the UI state
+        // User can manually refresh if they want to sync with GitHub API
+      } else {
+        // No filters applied, mark all notifications as read
+        log('🔍 No filters applied, marking all notifications as read');
+        await githubService.markAllNotificationsAsRead();
+        
+        // Update local state immediately - clear all notifications since they're all read
+        setNotifications([]);
+        setUnreadCount(0);
+      }
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
   };
 
   const handleRefresh = () => {
+    // Clear local tracking when user manually refreshes
+    log('🔄 Manual refresh - clearing local mark-as-read tracking');
+    setMarkedAsReadIds(new Set());
     loadNotifications(selectedOrgs, selectedRepos, selectedSubjectTypes, selectedReasons);
   };
 
@@ -394,9 +506,14 @@ function App() {
   }> => {
     try {
       console.log('�� Attempting to load filter settings...');
-      if (window.electronAPI && (window.electronAPI as any).getFilterSettings) {
+      if (window.electronAPI && window.electronAPI.getFilterSettings) {
         console.log('✅ getFilterSettings method available');
-        const filterSettings = await (window.electronAPI as any).getFilterSettings();
+        const filterSettings = await window.electronAPI.getFilterSettings() as {
+          organizations: string[];
+          repositories: string[];
+          subjectTypes: NotificationSubjectType[];
+          reasons: NotificationReason[];
+        };
         console.log('📋 Raw filter settings from storage:', filterSettings);
         if (filterSettings) {
           setSelectedOrgs(filterSettings.organizations || []);
@@ -412,8 +529,8 @@ function App() {
           return {
             organizations: filterSettings.organizations || [],
             repositories: filterSettings.repositories || [],
-            subjectTypes: filterSettings.subjectTypes || [],
-            reasons: filterSettings.reasons || []
+            subjectTypes: (filterSettings.subjectTypes || []) as NotificationSubjectType[],
+            reasons: (filterSettings.reasons || []) as NotificationReason[]
           };
         } else {
           console.log('ℹ️ No filter settings found in storage');
@@ -451,20 +568,17 @@ const handleSaveFilterSettings = async (
   newSelectedReasons: NotificationReason[]
 ) => {
   try {
-    console.log('💾 Saving filter settings:', {
+    const filterSettings = {
       organizations: newSelectedOrgs,
       repositories: newSelectedRepos,
       subjectTypes: newSelectedSubjectTypes,
       reasons: newSelectedReasons
-    });
+    };
     
-    if (window.electronAPI && (window.electronAPI as any).saveFilterSettings) {
-      const success = await (window.electronAPI as any).saveFilterSettings(
-        newSelectedOrgs, 
-        newSelectedRepos, 
-        newSelectedSubjectTypes, 
-        newSelectedReasons
-      );
+    console.log('💾 Saving filter settings:', filterSettings);
+    
+    if (window.electronAPI && window.electronAPI.saveFilterSettings) {
+      const success = await window.electronAPI.saveFilterSettings(filterSettings);
       if (success) {
         setSelectedOrgs(newSelectedOrgs);
         setSelectedRepos(newSelectedRepos);

@@ -41,9 +41,9 @@ try {
     },
     
     // Filter settings management
-    saveFilterSettings: (selectedOrgs: string[], selectedRepos: string[]) => {
-      console.log('saveFilterSettings called with:', selectedOrgs.length, 'orgs and', selectedRepos.length, 'repos');
-      return ipcRenderer.invoke('save-filter-settings', selectedOrgs, selectedRepos);
+    saveFilterSettings: (filterSettings: any) => {
+      console.log('saveFilterSettings called with:', filterSettings);
+      return ipcRenderer.invoke('save-filter-settings', filterSettings);
     },
     getFilterSettings: () => {
       console.log('getFilterSettings called');
@@ -72,6 +72,14 @@ try {
     getSettings: () => {
       console.log('getSettings called');
       return ipcRenderer.invoke('get-settings');
+    },
+    loadAllSettings: () => {
+      console.log('loadAllSettings called');
+      return ipcRenderer.invoke('load-all-settings');
+    },
+    saveAllSettings: (settings: any) => {
+      console.log('saveAllSettings called with:', settings);
+      return ipcRenderer.invoke('save-all-settings', settings);
     },
     
     // Open URL in default browser
